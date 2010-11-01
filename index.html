@@ -513,20 +513,22 @@
         this.event_queue.add_event(new Event(this.redraw_interval, "redraw"));
       }
 
+      Simulator.prototype.event_reset = function(event) {
+        this.drawer.fire_neuron(event.options.recipient, this.current_time);
+
+        var next_reset = event.options.recipient.next_reset(this.current_time);
+        this.event_queue.add_event(new Event(next_reset, "reset", {recipient: event.options.recipient}));
+      }
+
+      Simulator.prototype.event_redraw = function(event) {
+        this.drawer.redraw(this.network, this.current_time);
+        this.event_queue.add_event(new Event(this.current_time + this.redraw_interval, "redraw"));
+      }
+
       Simulator.prototype.execute_event = function(evt) {
         // this slows the simulation so that it is observable
         this.execute_timed(evt, function(event) {
-          switch(event.type) {
-            case "reset":
-              this.drawer.fire_neuron(event.options.recipient, this.current_time);
-              var next_reset = event.options.recipient.next_reset(this.current_time);
-              this.event_queue.add_event(new Event(next_reset, "reset", {recipient: event.options.recipient}));
-              break;
-            case "redraw":
-              this.drawer.redraw(this.network, this.current_time);
-              this.event_queue.add_event(new Event(this.current_time + this.redraw_interval, "redraw"));
-              break;
-          }
+          this["event_"+event.type](event);
 
           var event = this.event_queue.pop_next_event();
           if(event) {
