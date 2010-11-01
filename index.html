@@ -395,12 +395,11 @@
       Network.prototype.add_neuron = function(neuron) {
         neuron.id = this.neurons.length;
         this.neurons.push(neuron);
+
+        this.connections[neuron.id] = [];
       };
 
       Network.prototype.connect = function(pre_synaptic, post_synaptic) {
-        if (!this.connections[pre_synaptic.id]) {
-          this.connections[pre_synaptic.id] = [];
-        }
         this.connections[pre_synaptic.id].push(post_synaptic);
       }
 
