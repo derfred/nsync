@@ -1,5 +1,38 @@
 <html>
   <head>
+    <style type="text/css" media="screen">
+      #network_holder {
+        position: relative;
+      }
+
+      #graph_holder {
+        clear: left;
+        position: absolute;
+        top: 0;
+        left: 350;
+      }
+
+      #graph_holder ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      #graph_holder ul li {
+        float: left;
+      }
+
+      #graph_holder ul li a {
+        display: block;
+        padding: 5px;
+        border-left: 1px solid black;
+      }
+
+      #graph_holder ul li.active a {
+        background: #ddd;
+      }
+    </style>
+
     <script src="raphael.js" type="text/javascript" charset="utf-8"></script>
     <script type="text/javascript" charset="utf-8">
       function unit_vector(x1, y1, x2, y2) {
@@ -428,19 +461,21 @@
     <div id="controls">
       <p><label>Phase Shift for Pertubations</label><input type="text" value="0.5" id="pertubation_amount"></p>
     </div>
-    <div id="network">
-      
-    </div>
-    <div id="graph_holder">
-      <ul>
-        <li><a href="phases" class="tab_switcher">Phases</a></li>
-        <li><a href="spikes" class="tab_switcher">Spikes</a></li>
-      </ul>
-      <div id="phases">
-        
+    <div id="network_holder">
+      <div id="network">
+
       </div>
-      <div id="spikes">
-        
+      <div id="graph_holder">
+        <ul>
+          <li class="active"><a href="phases" class="tab_switcher">Phases</a></li>
+          <li><a href="spikes" class="tab_switcher">Spikes</a></li>
+        </ul>
+        <div id="phases" class="active">
+
+        </div>
+        <div id="spikes">
+
+        </div>
       </div>
     </div>
   </body>
