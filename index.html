@@ -34,7 +34,7 @@
 
 
       function NetworkDrawer() {
-        this.paper = Raphael(0, 30, 320, 320);
+        this.paper = Raphael("network", 320, 320);
         this.neuron_radius = 10;
         this.neuron_nodes = {};
         this.neuron_ids = {};
@@ -111,7 +111,7 @@
 
 
       function PhaseDiagramDrawer() {
-        this.paper = Raphael(350, 30, 600, 320);
+        this.paper = Raphael("phases", 600, 320);
         this.neuron_nodes = {};
         this.phase_data = {};
         this.datapoints_to_retain = 100;
@@ -408,8 +408,7 @@
       }
 
 
-
-      function run() {
+      window.onload = function() {
         var network = Network.fully_connected(5);
 
         var drawer = new Drawer();
@@ -426,9 +425,23 @@
     </script>
   </head>
   <body>
-    <script type="text/javascript" charset="utf-8">
-      run();
-    </script>
-    <p><label>Phase Shift for Pertubations</label><input type="text" value="0.5" id="pertubation_amount"></p>
+    <div id="controls">
+      <p><label>Phase Shift for Pertubations</label><input type="text" value="0.5" id="pertubation_amount"></p>
+    </div>
+    <div id="network">
+      
+    </div>
+    <div id="graph_holder">
+      <ul>
+        <li><a href="phases" class="tab_switcher">Phases</a></li>
+        <li><a href="spikes" class="tab_switcher">Spikes</a></li>
+      </ul>
+      <div id="phases">
+        
+      </div>
+      <div id="spikes">
+        
+      </div>
+    </div>
   </body>
 </html>
