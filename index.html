@@ -1,0 +1,434 @@
+<html>
+  <head>
+    <script src="raphael.js" type="text/javascript" charset="utf-8"></script>
+    <script type="text/javascript" charset="utf-8">
+      function unit_vector(x1, y1, x2, y2) {
+        var distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+
+        return {
+          x: (x2 - x1)/distance,
+          y: (y2 - y1)/distance
+        };
+      }
+
+      Raphael.fn.arrow = function (x1, y1, x2, y2, size) {
+        // some magic numbers
+        var opening_angle = 0.4 * Math.PI;
+        var arm_length = size*5;
+
+        var unit = unit_vector(x1, y1, x2, y2);
+        unit.x = -unit.x;
+        unit.y = -unit.y;
+
+        // arm one is rotated in half the opening angle clockwise
+        var arm_one_x = unit.x*arm_length * Math.cos(opening_angle/2) - unit.y*arm_length * Math.sin(opening_angle/2) + x2;
+        var arm_one_y = unit.x*arm_length * Math.sin(opening_angle/2) + unit.y*arm_length * Math.cos(opening_angle/2) + y2;
+
+        // arm two is rotated in half the opening angle counter clockwise
+        var arm_two_x = unit.x*arm_length * Math.cos(-opening_angle/2) - unit.y*arm_length * Math.sin(-opening_angle/2) + x2;
+        var arm_two_y = unit.x*arm_length * Math.sin(-opening_angle/2) + unit.y*arm_length * Math.cos(-opening_angle/2) + y2;
+
+        return this.path("M"+x1+" "+y1+" L"+x2+" "+y2+" M"+arm_one_x+" "+arm_one_y+" L"+x2+" "+y2+" L"+arm_two_x+" "+arm_two_y).attr("stroke-width", size);
+      };
+
+
+
+      function NetworkDrawer() {
+        this.paper = Raphael(0, 30, 320, 320);
+        this.neuron_radius = 10;
+        this.neuron_nodes = {};
+        this.neuron_ids = {};
+      }
+
+      NetworkDrawer.prototype.location_for = function(network, neuron) {
+        var angle = neuron.id/network.neurons.length * 2 * Math.PI;
+        var x = Math.sin(angle) * (this.paper.width*0.8)/2 +  this.paper.width/2;
+        var y = (-Math.cos(angle)) * (this.paper.height*0.8)/2 + this.paper.height/2;
+        return {x: x, y:y};
+      }
+
+      NetworkDrawer.prototype.connecting_line_coords = function(network, pre_synaptic, post_synaptic) {
+        var pre_location = this.location_for(network, pre_synaptic);
+        var post_location = this.location_for(network, post_synaptic);
+
+        var result = {
+          x1: pre_location.x + this.neuron_radius,
+          y1: pre_location.y + this.neuron_radius,
+          x2: post_location.x + this.neuron_radius,
+          y2: post_location.y + this.neuron_radius,
+        };
+
+        var unit = unit_vector(result.x1, result.y1, result.x2, result.y2);
+
+        var shift = 3;
+        result.x1 = result.x1 + (unit.x*(this.neuron_radius+shift)) + (unit.y*shift);
+        result.y1 = result.y1 + (unit.y*(this.neuron_radius+shift)) - (unit.x*shift);
+
+        result.x2 = result.x2 - (unit.x*(this.neuron_radius+shift)) + (unit.y*shift);
+        result.y2 = result.y2 - (unit.y*(this.neuron_radius+shift)) - (unit.x*shift);
+
+        return result;
+      }
+
+      NetworkDrawer.prototype.draw = function(network) {
+        for (var i=0; i < network.neurons.length; i++) {
+          this.draw_neuron(network, network.neurons[i]);
+
+          for (var j=0; j < network.connections[network.neurons[i].id].length; j++) {
+            var coords = this.connecting_line_coords(network, network.neurons[i], network.connections[network.neurons[i].id][j]);
+            this.paper.arrow(coords.x1, coords.y1, coords.x2, coords.y2, 1);
+          };
+        };
+      };
+
+      NetworkDrawer.prototype.draw_neuron = function(network, neuron) {
+        var location = this.location_for(network, neuron);
+        var node = this.paper.circle(location.x+this.neuron_radius, location.y+this.neuron_radius, this.neuron_radius);
+        node.attr("fill", "#fff");
+        node.attr("stroke", "#f00");
+
+        this.paper.text(location.x+this.neuron_radius, location.y+this.neuron_radius, neuron.id);
+
+        this.neuron_nodes[neuron.id] = node;
+        node.node.neuron_id = neuron.id;
+      };
+
+      NetworkDrawer.prototype.fire_neuron = function(neuron) {
+        this.neuron_nodes[neuron.id].animate({
+          "50%": {fill: "#f00"},
+          "100%": {fill: "#fff"},
+        }, 200);
+      }
+
+      NetworkDrawer.prototype.neuron_click = function(callback) {
+        for(id in this.neuron_nodes) {
+          this.neuron_nodes[id].click(function(event) {
+            callback(event.currentTarget.neuron_id);
+          });
+        }
+      }
+
+
+
+      function PhaseDiagramDrawer() {
+        this.paper = Raphael(350, 30, 600, 320);
+        this.neuron_nodes = {};
+        this.phase_data = {};
+        this.datapoints_to_retain = 100;
+      }
+
+      PhaseDiagramDrawer.prototype.draw = function(network) {
+        this.draw_coordinate_system(network);
+
+        for (var i=0; i < network.neurons.length; i++) {
+          this.phase_data[network.neurons[i].id] = [];
+          this.neuron_nodes[network.neurons[i].id] = this.paper.path("M0 0").attr("stroke-width", 1);
+        };
+      }
+
+      PhaseDiagramDrawer.prototype.redraw = function(network, current_time) {
+        this.save_phases(network, current_time);
+        this.update_diagram(network);
+      }
+
+      PhaseDiagramDrawer.prototype.draw_coordinate_system = function(network) {
+        var stroke_width = 2;
+
+        var horizontal_padding = this.paper.width*0.025;
+        var vertical_padding = this.paper.height*0.025;
+        this.paper.arrow(horizontal_padding, this.paper.height-vertical_padding, horizontal_padding, vertical_padding, stroke_width);
+        this.paper.arrow(horizontal_padding, this.paper.height-vertical_padding, this.paper.width-horizontal_padding, this.paper.height-vertical_padding, stroke_width);
+
+        var spacing = (this.paper.height - 2*vertical_padding)/network.neurons.length;
+        for (var i=0; i < network.neurons.length; i++) {
+          this.paper.text(horizontal_padding*0.5, (vertical_padding+(i+0.5)*spacing), network.neurons[i].id)
+          this.paper.path("M"+(horizontal_padding*0.5)+" "+(vertical_padding+(i+1)*spacing)+" L"+(horizontal_padding*1.5)+" "+(vertical_padding+(i+1)*spacing)).attr("stroke-width", stroke_width);
+        };
+      }
+
+      PhaseDiagramDrawer.prototype.save_phases = function(network, current_time) {
+        for (var i=0; i < network.neurons.length; i++) {
+          this.write_phase(network.neurons[i].id, current_time, network.neurons[i].current_phase(current_time));
+        };
+      }
+
+      PhaseDiagramDrawer.prototype.update_diagram = function(network) {
+        var horizontal_padding = this.paper.width*0.025;
+        var vertical_padding = this.paper.height*0.025;
+        var spacing = (this.paper.height - 2*vertical_padding)/network.neurons.length;
+
+        for (var i=0; i < network.neurons.length; i++) {
+          var phase_data = this.phase_data[network.neurons[i].id];
+          var neuron_node = this.neuron_nodes[network.neurons[i].id];
+
+          if(phase_data.length > 1) {
+            var first_time = phase_data[0].time;
+            var time_length = phase_data[phase_data.length-1].time - first_time;
+            var unit_time_width = (this.paper.width*0.95*(phase_data.length/this.datapoints_to_retain))/time_length;
+
+            var path_string = [];
+            for (var j=0; j < phase_data.length; j++) {
+              var data_point = phase_data[j];
+              path_string.push(((data_point.time-first_time)*unit_time_width+horizontal_padding)+" "+(vertical_padding+(i+1-data_point.phase)*spacing));
+            };
+
+            neuron_node.attr({"path": "M"+path_string.join(" L")});
+          }
+        };
+      }
+
+      PhaseDiagramDrawer.prototype.write_phase = function(neuron_id, current_time, phase) {
+        this.phase_data[neuron_id].push({
+          time: current_time,
+          phase: phase
+        });
+
+        if(this.phase_data[neuron_id].length > this.datapoints_to_retain) {
+          this.phase_data[neuron_id].shift();
+        }
+      }
+
+      PhaseDiagramDrawer.prototype.register_reset = function(neuron, current_time) {
+        this.write_phase(neuron.id, current_time, 1);
+        this.write_phase(neuron.id, current_time, 0);
+      }
+
+
+
+      function Drawer() {
+        this.network_drawer = new NetworkDrawer();
+        this.phase_diagram_drawer = new PhaseDiagramDrawer();
+      }
+
+      Drawer.prototype.draw = function(network) {
+        this.network_drawer.draw(network);
+        this.phase_diagram_drawer.draw(network);
+      }
+
+      Drawer.prototype.redraw = function(network, current_time) {
+        this.phase_diagram_drawer.redraw(network, current_time);
+      }
+
+      Drawer.prototype.fire_neuron = function(neuron, current_time) {
+        this.network_drawer.fire_neuron(neuron);
+        this.phase_diagram_drawer.register_reset(neuron, current_time);
+      }
+
+      Drawer.prototype.neuron_click = function(callback) {
+        this.network_drawer.neuron_click(callback);
+      }
+
+
+
+      function Network() {
+        this.neurons = [];
+        this.connections = {};
+      }
+
+      Network.fully_connected = function(total) {
+        var network = new Network();
+
+        for (var i=0; i < total; i++) {
+          network.add_neuron(new Neuron(network, Math.random()));
+        };
+
+        for (var i=0; i < network.neurons.length; i++) {
+          for (var j=0; j < network.neurons.length; j++) {
+            if (j != i) {
+              network.connect(network.neurons[i], network.neurons[j]);
+            }
+          };
+        };
+
+        return network;
+      }
+
+      Network.prototype.add_neuron = function(neuron) {
+        neuron.id = this.neurons.length;
+        this.neurons.push(neuron);
+      };
+
+      Network.prototype.connect = function(pre_synaptic, post_synaptic) {
+        if (!this.connections[pre_synaptic.id]) {
+          this.connections[pre_synaptic.id] = [];
+        }
+        this.connections[pre_synaptic.id].push(post_synaptic);
+      }
+
+      Network.prototype.get_neuron_by = function(neuron_id) {
+        return this.neurons.filter(function(neuron) {
+          return neuron.id == neuron_id;
+        })[0];
+      }
+
+
+
+      function Neuron(network, initial_phase) {
+        this.network = network;
+        this.initial_phase = initial_phase;
+      };
+
+      Neuron.prototype.next_reset = function(current_time) {
+        if(!this.last_reset) {
+          this.last_reset = current_time + Math.ceil(this.initial_phase) - this.initial_phase - 1;
+        } else {
+          this.last_reset = current_time;
+        }
+        return this.last_reset + 1;
+      }
+
+      Neuron.prototype.current_phase = function(current_time) {
+        return current_time - this.last_reset;
+      }
+
+
+
+      function Event(time, type, options) {
+        this.time = time;
+        this.type = type;
+
+        if(options) {
+          this.options = options;
+        } else {
+          this.options = {};
+        }
+      }
+
+
+
+      function EventQueue() {
+        this.events = [];
+      }
+
+      EventQueue.prototype.clear = function() {
+        this.events = [];
+      }
+
+      EventQueue.prototype.sort_queue = function() {
+        this.events.sort(function(a, b) { return a.time-b.time; });
+      }
+
+      EventQueue.prototype.add_event = function(event) {
+        this.events.push(event);
+        this.sort_queue();
+      }
+
+      EventQueue.prototype.find_next_event_index = function(predicate) {
+        this.sort_queue();
+
+        if(this.events.length == 0) {
+          return;
+        }
+
+        if(!predicate) {
+          return 0;
+        }
+
+        for (var i=0; i < this.events.length; i++) {
+          if(predicate(this.events[i])) {
+            return i;
+          }
+        };
+      }
+
+      EventQueue.prototype.remove_indexed_event = function(index) {
+        this.events.splice(index, 1);
+      }
+
+      EventQueue.prototype.pop_next_event = function(predicate) {
+        index = this.find_next_event_index(predicate);
+        event = this.events[index];
+        this.remove_indexed_event(index);
+        return event;
+      }
+
+
+
+      function Simulator(network, drawer) {
+        this.network = network;
+        this.drawer = drawer;
+        this.event_queue = new EventQueue();
+
+        this.speed = 1000;
+        this.redraw_interval = 0.1;
+      }
+
+      Simulator.prototype.initialize = function() {
+        this.current_time = 0.0;
+        this.event_queue.clear();
+
+        for (var i=0; i < this.network.neurons.length; i++) {
+          var neuron = this.network.neurons[i];
+          this.event_queue.add_event(new Event(neuron.next_reset(this.current_time), "reset", {recipient: neuron}));
+        };
+
+        this.event_queue.add_event(new Event(this.redraw_interval, "redraw"));
+      }
+
+      Simulator.prototype.execute_event = function(evt) {
+        // this slows the simulation so that it is observable
+        this.execute_timed(evt, function(event) {
+          switch(event.type) {
+            case "reset":
+              this.drawer.fire_neuron(event.options.recipient, this.current_time);
+              var next_reset = event.options.recipient.next_reset(this.current_time);
+              this.event_queue.add_event(new Event(next_reset, "reset", {recipient: event.options.recipient}));
+              break;
+            case "redraw":
+              this.drawer.redraw(this.network, this.current_time);
+              this.event_queue.add_event(new Event(this.current_time + this.redraw_interval, "redraw"));
+              break;
+          }
+
+          var event = this.event_queue.pop_next_event();
+          if(event) {
+            this.execute_event(event);
+          }
+        });
+      }
+
+      Simulator.prototype.execute_timed = function(event, callback) {
+        self = this;
+        setTimeout(function() {
+          self.current_time = event.time;
+          callback.apply(self, [event]);
+        }, (event.time - self.current_time)*this.speed);
+      }
+
+      Simulator.prototype.run = function() {
+        this.initialize();
+
+        var event = this.event_queue.pop_next_event();
+        this.execute_event(event);
+      }
+
+      Simulator.prototype.perturb_neuron = function(neuron_id, amount) {
+        var neuron = this.network.get_neuron_by(neuron_id);
+        console.log(neuron)
+      }
+
+
+
+      function run() {
+        var network = Network.fully_connected(5);
+
+        var drawer = new Drawer();
+        drawer.draw(network);
+
+        var simulator = new Simulator(network, drawer);
+
+        drawer.neuron_click(function(neuron_id) {
+          simulator.perturb_neuron(neuron_id, parseFloat(document.getElementById("pertubation_amount").value));
+        });
+
+        simulator.run();
+      }
+    </script>
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      run();
+    </script>
+    <p><label>Phase Shift for Pertubations</label><input type="text" value="0.5" id="pertubation_amount"></p>
+  </body>
+</html>
