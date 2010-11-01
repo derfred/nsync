@@ -64,6 +64,14 @@
         return this.path("M"+x1+" "+y1+" L"+x2+" "+y2+" M"+arm_one_x+" "+arm_one_y+" L"+x2+" "+y2+" L"+arm_two_x+" "+arm_two_y).attr("stroke-width", size);
       };
 
+      function $(id) {
+        return document.getElementById(id);
+      }
+
+      function $$(klass_name) {
+        return document.getElementsByClassName(klass_name);
+      }
+
 
 
       function NetworkDrawer() {
