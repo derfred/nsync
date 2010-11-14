@@ -102,6 +102,10 @@
         return document.getElementsByClassName(klass_name);
       }
 
+      function $F(id) {
+        return parseFloat($(id).value);
+      }
+
 
       function Canvas(id) {
         this.ctx = document.getElementById(id).getContext("2d");
@@ -201,6 +205,10 @@
         this.neuron_ids = {};
       }
 
+      NetworkDrawer.prototype.reset = function() {
+        this.paper.clear();
+      }
+
       NetworkDrawer.prototype.location_for = function(network, neuron) {
         var angle = neuron.id/network.neurons.length * 2 * Math.PI;
         var x = Math.sin(angle) * (this.paper.width*0.8)/2 +  this.paper.width/2;
@@ -273,8 +281,12 @@
 
       function PhaseDiagramDrawer() {
         this.canvas = new Canvas("phases_canvas");
-        this.phase_data = {};
         this.lookback_time = 5;
+        this.reset();
+      }
+
+      PhaseDiagramDrawer.prototype.reset = function() {
+        this.phase_data = {};
       }
 
       PhaseDiagramDrawer.prototype.clear = function(network) {
@@ -362,9 +374,12 @@
 
       function SpikeDiagramDrawer() {
         this.canvas = new Canvas("spikes_canvas");
-        this.neuron_nodes = {};
-        this.spike_data = {};
         this.lookback_time = 5;
+        this.reset();
+      }
+
+      SpikeDiagramDrawer.prototype.reset = function() {
+        this.spike_data = {};
       }
 
       SpikeDiagramDrawer.prototype.clear = function(network) {
@@ -422,6 +437,12 @@
         this.spike_diagram_drawer = new SpikeDiagramDrawer();
 
         this.register_tab_switcher();
+      }
+
+      Drawer.prototype.reset = function() {
+        this.network_drawer.reset();
+        this.phase_diagram_drawer.reset();
+        this.spike_diagram_drawer.reset();
       }
 
       Drawer.prototype.draw = function(network) {
@@ -589,6 +610,14 @@
         }
       }
 
+      Event.prototype.wait_time = function(current_time) {
+        if(this.time > current_time) {
+          return this.time - current_time;
+        } else {
+          return 0;
+        }
+      }
+
 
 
       function EventQueue() {
@@ -637,6 +666,11 @@
         return event;
       }
 
+      EventQueue.prototype.prepend_event = function(type, options) {
+        this.sort_queue();
+        this.add_event(new Event(this.events[0].time-0.000001, type, options));
+      }
+
 
 
       function Simulator() {
@@ -652,6 +686,9 @@
 
         this.current_time = 0.0;
         this.event_queue.clear();
+
+        this.drawer.reset();
+        this.drawer.draw(network);
 
         for (var i=0; i < this.network.neurons.length; i++) {
           var neuron = this.network.neurons[i];
@@ -710,6 +747,14 @@
         }
       }
 
+      Simulator.prototype.event_stop = function(event) {
+        this.event_queue.clear();
+        if(event.options.callback) {
+          setTimeout(event.options.callback, 10);
+        }
+        return false;
+      }
+
       Simulator.prototype.execute_event = function(evt) {
         // this slows the simulation so that it is observable
         this.execute_timed(evt, function(event) {
@@ -727,12 +772,16 @@
         setTimeout(function() {
           self.current_time = event.time;
           callback.apply(self, [event]);
-        }, (event.time - self.current_time)*this.speed);
+        }, event.wait_time(self.current_time)*this.speed);
       }
 
       Simulator.prototype.run = function() {
         var event = this.event_queue.pop_next_event();
         this.execute_event(event);
+      }
+
+      Simulator.prototype.stop = function(callback) {
+        this.event_queue.prepend_event("stop", {callback: callback});
       }
 
       Simulator.prototype.perturb_neuron = function(neuron_id, amount) {
@@ -741,17 +790,31 @@
       }
 
 
+      function generate_network() {
+        if(simulator) {
+          simulator.stop(function() {
+            var network = Network.fully_connected($F("init_n"), {delay: $F("init_tau"), strength: $F("init_epsilon")});
+            simulator.initialize(network, drawer);
+            simulator.run();
+          });
+        }
+        return false;
+      }
+
+
+      var simulator = false;
+      var drawer = false;
       window.onload = function() {
+        $("init_controls").onsubmit = generate_network;
+
         var network = Network.fully_connected(5, {delay: 0.31, strength: 0.025});
-
         var drawer = new Drawer();
-        drawer.draw(network);
 
-        var simulator = new Simulator();
+        simulator = new Simulator();
         simulator.initialize(network, drawer);
 
         drawer.neuron_click(function(neuron_id) {
-          simulator.perturb_neuron(neuron_id, parseFloat(document.getElementById("pertubation_amount").value));
+          simulator.perturb_neuron(neuron_id, $F("pertubation_amount"));
         });
 
         simulator.run();
