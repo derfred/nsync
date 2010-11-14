@@ -532,16 +532,17 @@
 
 
 
-      function Simulator(network, drawer) {
-        this.network = network;
-        this.drawer = drawer;
+      function Simulator() {
         this.event_queue = new EventQueue();
 
         this.speed = 1000;
         this.redraw_interval = 0.1;
       }
 
-      Simulator.prototype.initialize = function() {
+      Simulator.prototype.initialize = function(network, drawer) {
+        this.network = network;
+        this.drawer = drawer;
+
         this.current_time = 0.0;
         this.event_queue.clear();
 
@@ -623,8 +624,6 @@
       }
 
       Simulator.prototype.run = function() {
-        this.initialize();
-
         var event = this.event_queue.pop_next_event();
         this.execute_event(event);
       }
@@ -641,7 +640,8 @@
         var drawer = new Drawer();
         drawer.draw(network);
 
-        var simulator = new Simulator(network, drawer);
+        var simulator = new Simulator();
+        simulator.initialize(network, drawer);
 
         drawer.neuron_click(function(neuron_id) {
           simulator.perturb_neuron(neuron_id, parseFloat(document.getElementById("pertubation_amount").value));
