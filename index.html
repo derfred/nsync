@@ -1,15 +1,45 @@
 <html>
   <head>
     <style type="text/css" media="screen">
+      body {
+        font-family: sans-serif;
+        width: 950px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .section {
+        border: 1px solid #ccc;
+        padding: 5px;
+        float: left;
+        clear: both;
+        width: 100%;
+        margin-bottom: 20px;
+      }
+
+      .section h2 {
+        margin: -5px;
+        margin-bottom: 5px;
+        padding: 5px;
+        background: #ccc;
+      }
+
+      p label {
+        float: left;
+        width: 250px;
+      }
+
       #network_holder {
         position: relative;
+        clear: both;
+      }
+
+      #network {
+        float: left;
       }
 
       #graph_holder {
-        clear: left;
-        position: absolute;
-        top: 0;
-        left: 350;
+        float: left;
       }
 
       #graph_holder ul {
@@ -729,10 +759,15 @@
     </script>
   </head>
   <body>
-    <div id="controls">
-      <p><label>Phase Shift for Pertubations</label><input type="text" value="0.5" id="pertubation_amount"></p>
-    </div>
-    <div id="network_holder">
+    <form id="init_controls" class="section">
+      <h2>Network Parameters</h2>
+      <p><label>Number of Neurons (N)</label><input type="text" value="5" id="init_n"></p>
+      <p><label>Connection Strength (&epsilon;)</label><input type="text" value="0.025" id="init_epsilon"></p>
+      <p><label>Signal delay (&tau;)</label><input type="text" value="0.31" id="init_tau"></p>
+      <input type="submit" value="Generate Network">
+    </form>
+    <div id="network_holder" class="section">
+      <h2>Network</h2>
       <div id="network">
 
       </div>
@@ -748,6 +783,10 @@
           <canvas id="spikes_canvas" width="600" height="320"></canvas>
         </div>
       </div>
+    </div>
+    <form id="controls" class="section">
+      <h2>Interaction Parameters</h2>
+      <p><label>Phase Shift for Pertubations</label><input type="text" value="0.5" id="pertubation_amount"></p>
     </div>
   </body>
 </html>
