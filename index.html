@@ -257,24 +257,31 @@
 
 
       function PhaseDiagramDrawer() {
-        this.paper = Raphael("phases", 600, 320);
-        this.neuron_nodes = {};
+        this.canvas = new Canvas("phases_canvas");
         this.phase_data = {};
-        this.datapoints_to_retain = 100;
+        this.lookback_time = 5;
+      }
+
+      PhaseDiagramDrawer.prototype.clear = function(network) {
+        this.canvas.clear();
+        this.canvas.draw_coordinate_system(network);
+      }
+
+      PhaseDiagramDrawer.prototype.calc_unit_time_width = function(padding) {
+        return (this.canvas.width-3*padding.horizontal)/this.lookback_time;
       }
 
       PhaseDiagramDrawer.prototype.draw = function(network) {
-        draw_coordinate_system(this.paper, network);
+        this.clear(network);
 
         for (var i=0; i < network.neurons.length; i++) {
           this.phase_data[network.neurons[i].id] = [];
-          this.neuron_nodes[network.neurons[i].id] = this.paper.path("M0 0").attr("stroke-width", 1);
         };
       }
 
       PhaseDiagramDrawer.prototype.redraw = function(network, current_time) {
         this.save_phases(network, current_time);
-        this.update_diagram(network);
+        this.update_diagram(network, current_time);
       }
 
       PhaseDiagramDrawer.prototype.save_phases = function(network, current_time) {
@@ -283,29 +290,41 @@
         };
       }
 
-      PhaseDiagramDrawer.prototype.update_diagram = function(network) {
-        var horizontal_padding = this.paper.width*0.025;
-        var vertical_padding = this.paper.height*0.025;
-        var spacing = (this.paper.height - 2*vertical_padding)/network.neurons.length;
+      PhaseDiagramDrawer.prototype.update_diagram = function(network, current_time) {
+        this.clear(network);
+
+        var padding = this.canvas.padding();
+        var spacing = (this.canvas.height - 2*padding.vertical)/network.neurons.length;
+
+        var time_width = this.calc_unit_time_width(padding);
+        var now = this.canvas.width-2*padding.horizontal;
+
+        var coords_for = function(data_point) {
+          return {
+            x: now-((current_time-data_point.time)*time_width),
+            y: padding.vertical+(i+1-data_point.phase)*spacing
+          };
+        };
+
+        this.canvas.ctx.save();
 
         for (var i=0; i < network.neurons.length; i++) {
           var phase_data = this.phase_data[network.neurons[i].id];
-          var neuron_node = this.neuron_nodes[network.neurons[i].id];
+          if(phase_data.length > 0) {
+            var initial = coords_for(phase_data[phase_data.length-1])
+            this.canvas.ctx.moveTo(initial.x, initial.y);
 
-          if(phase_data.length > 1) {
-            var first_time = phase_data[0].time;
-            var time_length = phase_data[phase_data.length-1].time - first_time;
-            var unit_time_width = (this.paper.width*0.95*(phase_data.length/this.datapoints_to_retain))/time_length;
-
-            var path_string = [];
-            for (var j=0; j < phase_data.length; j++) {
-              var data_point = phase_data[j];
-              path_string.push(((data_point.time-first_time)*unit_time_width+horizontal_padding)+" "+(vertical_padding+(i+1-data_point.phase)*spacing));
-            };
-
-            neuron_node.attr({"path": "M"+path_string.join(" L")});
+            for(var j=phase_data.length-2; j >= 0; j--) {
+              var coords = coords_for(phase_data[j]);
+              if(coords.x > padding.horizontal) {
+                this.canvas.ctx.lineTo(coords.x, coords.y);
+              }
+            }
           }
-        };
+        }
+
+        this.canvas.ctx.stroke();
+        this.canvas.ctx.restore();
       }
 
       PhaseDiagramDrawer.prototype.write_phase = function(neuron_id, current_time, phase) {
@@ -314,7 +333,7 @@
           phase: phase
         });
 
-        if(this.phase_data[neuron_id].length > this.datapoints_to_retain) {
+        while(this.phase_data[neuron_id][0].time < (current_time-this.lookback_time)) {
           this.phase_data[neuron_id].shift();
         }
       }
@@ -368,8 +387,8 @@
               this.canvas.line(x, padding.vertical+(i+0.1)*spacing,
                                x, padding.vertical+(i+0.9)*spacing);
             }
-          };
-        };
+          }
+        }
       }
 
       SpikeDiagramDrawer.prototype.register_reset = function(neuron, current_time) {
@@ -738,7 +757,7 @@
           <li class="active"><a href="#" id="spikes_link" class="tab_switcher">Spikes</a></li>
         </ul>
         <div id="phases" class="tab" style="display: none;">
-          <canvas id="phases_canvas"></canvas>
+          <canvas id="phases_canvas" width="600" height="320"></canvas>
         </div>
         <div id="spikes" class="tab">
           <canvas id="spikes_canvas" width="600" height="320"></canvas>
