@@ -88,6 +88,96 @@
       }
 
 
+      function Canvas(id) {
+        this.ctx = document.getElementById(id).getContext("2d");
+        this.width = this.ctx.canvas.width;
+        this.height = this.ctx.canvas.height;
+      }
+
+      Canvas.prototype.padding = function() {
+        return {
+          horizontal: this.ctx.canvas.width*0.025,
+          vertical: this.ctx.canvas.height*0.025
+        };
+      }
+
+      Canvas.prototype.set_options = function(options) {
+        if(options) {
+          for(k in options) {
+            this.ctx[k] = options[k];
+          }
+        }
+      }
+
+      Canvas.prototype.clear = function() {
+        this.ctx.clearRect(0, 0, this.width, this.height);
+      }
+
+      Canvas.prototype.draw_coordinate_system = function(network) {
+        var stroke_width = 2;
+
+        var padding = this.padding();
+
+        this.arrow(padding.horizontal, this.height-padding.vertical, padding.horizontal, padding.vertical, {lineWidth: stroke_width});
+        this.arrow(padding.horizontal, this.height-padding.vertical, this.width-padding.horizontal, this.height-padding.vertical, {lineWidth: stroke_width});
+
+        var spacing = (this.height - 2*padding.vertical)/network.neurons.length;
+        for (var i=0; i < network.neurons.length; i++) {
+          this.ctx.strokeText(network.neurons[i].id, padding.horizontal*0.35, (padding.vertical+(i+0.5)*spacing));
+
+          // baseline for every neuron
+          this.line(padding.horizontal, padding.vertical+(i+1)*spacing,
+                    this.width-2*padding.horizontal, padding.vertical+(i+1)*spacing,
+                    {lineWidth: 1, strokeStyle: "#ccc"});
+
+          // tick mark on y-axis
+          this.line(padding.horizontal*0.5, padding.vertical+(i+1)*spacing,
+                    padding.horizontal, padding.vertical+(i+1)*spacing,
+                    {lineWidth: stroke_width});
+        };
+
+        // this is the "now" line
+        this.line(this.width-2*padding.horizontal, padding.vertical,
+                  this.width-2*padding.horizontal, this.height-padding.vertical,
+                  {lineWidth: stroke_width, strokeStyle: "#aaa"});
+      }
+
+      Canvas.prototype.line = function(x1, y1, x2, y2, options) {
+        this.ctx.save();
+        this.ctx.beginPath();
+
+        this.set_options(options);
+
+        this.ctx.moveTo(x1, y1);
+        this.ctx.lineTo(x2, y2);
+
+        this.ctx.stroke();
+        this.ctx.restore();
+      }
+
+      Canvas.prototype.arrow = function(x1, y1, x2, y2, options) {
+        // some magic numbers
+        var opening_angle = 0.4 * Math.PI;
+        var arm_length = options.lineWidth*5;
+
+        var unit = unit_vector(x1, y1, x2, y2);
+        unit.x = -unit.x;
+        unit.y = -unit.y;
+
+        // draw main line
+        this.line(x1, y1, x2, y2, options);
+
+        // arm one is rotated in half the opening angle clockwise
+        var arm_one_x = unit.x*arm_length * Math.cos(opening_angle/2) - unit.y*arm_length * Math.sin(opening_angle/2) + x2;
+        var arm_one_y = unit.x*arm_length * Math.sin(opening_angle/2) + unit.y*arm_length * Math.cos(opening_angle/2) + y2;
+        this.line(arm_one_x, arm_one_y, x2, y2, options);
+
+        // arm two is rotated in half the opening angle counter clockwise
+        var arm_two_x = unit.x*arm_length * Math.cos(-opening_angle/2) - unit.y*arm_length * Math.sin(-opening_angle/2) + x2;
+        var arm_two_y = unit.x*arm_length * Math.sin(-opening_angle/2) + unit.y*arm_length * Math.cos(-opening_angle/2) + y2;
+        this.line(arm_two_x, arm_two_y, x2, y2, options);
+      }
+
 
       function NetworkDrawer() {
         this.paper = Raphael("network", 320, 320);
