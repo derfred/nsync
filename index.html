@@ -64,21 +64,6 @@
         return this.path("M"+x1+" "+y1+" L"+x2+" "+y2+" M"+arm_one_x+" "+arm_one_y+" L"+x2+" "+y2+" L"+arm_two_x+" "+arm_two_y).attr("stroke-width", size);
       };
 
-      function draw_coordinate_system(paper, network) {
-        var stroke_width = 2;
-
-        var horizontal_padding = paper.width*0.025;
-        var vertical_padding = paper.height*0.025;
-        paper.arrow(horizontal_padding, paper.height-vertical_padding, horizontal_padding, vertical_padding, stroke_width);
-        paper.arrow(horizontal_padding, paper.height-vertical_padding, paper.width-horizontal_padding, paper.height-vertical_padding, stroke_width);
-
-        var spacing = (paper.height - 2*vertical_padding)/network.neurons.length;
-        for (var i=0; i < network.neurons.length; i++) {
-          paper.text(horizontal_padding*0.5, (vertical_padding+(i+0.5)*spacing), network.neurons[i].id)
-          paper.path("M"+(horizontal_padding*0.5)+" "+(vertical_padding+(i+1)*spacing)+" L"+(horizontal_padding*1.5)+" "+(vertical_padding+(i+1)*spacing)).attr("stroke-width", stroke_width);
-        };
-      }
-
       function $(id) {
         return document.getElementById(id);
       }
@@ -727,7 +712,7 @@
 
 
       window.onload = function() {
-        var network = Network.fully_connected(5, {delay: 0.31, strength: 0.0025});
+        var network = Network.fully_connected(5, {delay: 0.31, strength: 0.025});
 
         var drawer = new Drawer();
         drawer.draw(network);
