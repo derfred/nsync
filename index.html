@@ -594,7 +594,11 @@
       }
 
       Neuron.prototype.current_phase = function(current_time) {
-        return current_time - this.last_reset;
+        if(this.last_spike && (this.last_spike.time > this.last_reset)) {
+          return current_time - this.last_spike.time + this.last_spike.phase;
+        } else {
+          return current_time - this.last_reset;
+        }
       }
 
       Neuron.prototype.post_synaptic_neurons = function() {
@@ -755,6 +759,8 @@
       }
 
       Simulator.prototype.event_spike = function(event) {
+        this.drawer.redraw(this.network, this.current_time);
+
         var reset_event_index = this.event_queue.find_next_event_index(function(evt) {
           return evt.type == "reset" && evt.options.recipient == event.options.recipient;
         });
