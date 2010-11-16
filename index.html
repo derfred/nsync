@@ -206,12 +206,13 @@
       function NetworkDrawer() {
         this.paper = Raphael("network", 320, 320);
         this.neuron_radius = 10;
-        this.neuron_nodes = {};
-        this.neuron_locations = {};
+        this.reset();
       }
 
       NetworkDrawer.prototype.reset = function() {
         this.paper.clear();
+        this.neuron_nodes = {};
+        this.neuron_locations = {};
       }
 
       NetworkDrawer.prototype.location_for = function(length, index) {
