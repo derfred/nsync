@@ -269,7 +269,11 @@
         this.neuron_nodes[neuron.id] = node;
       };
 
-      NetworkDrawer.prototype.fire_neuron = function(neuron) {
+      NetworkDrawer.prototype.redraw = function(network, current_time) {
+        
+      }
+
+      NetworkDrawer.prototype.neuron_fired = function(neuron) {
         this.neuron_nodes[neuron.id].animate({
           "50%": {fill: "#f00"},
           "100%": {fill: "#fff"},
@@ -393,7 +397,7 @@
         }
       }
 
-      PhaseDiagramDrawer.prototype.register_reset = function(neuron, current_time) {
+      PhaseDiagramDrawer.prototype.neuron_fired = function(neuron, current_time) {
         this.write_phase(neuron.id, current_time, 1);
         this.write_phase(neuron.id, current_time, 0);
       }
@@ -449,7 +453,7 @@
         }
       }
 
-      SpikeDiagramDrawer.prototype.register_reset = function(neuron, current_time) {
+      SpikeDiagramDrawer.prototype.neuron_fired = function(neuron, current_time) {
         this.spike_data[neuron.id].push(current_time);
 
         while(this.spike_data[neuron.id][0] < current_time-this.lookback_time) {
@@ -490,33 +494,44 @@
 
       function Drawer() {
         this.network_drawer = new NetworkDrawer();
-        this.phase_diagram_drawer = new PhaseDiagramDrawer();
-        this.spike_diagram_drawer = new SpikeDiagramDrawer();
+        this.drawers = [
+          this.network_drawer,
+          new PhaseDiagramDrawer(),
+          new SpikeDiagramDrawer(),
+          new PhaseDifferenceDiagramDrawer()
+        ];
 
         this.register_tab_switcher();
       }
 
+      Drawer.prototype.each_drawer = function(callback) {
+        for(var i=0;i<this.drawers.length;i++) {
+          callback(this.drawers[i]);
+        }
+      }
+
       Drawer.prototype.reset = function() {
-        this.network_drawer.reset();
-        this.phase_diagram_drawer.reset();
-        this.spike_diagram_drawer.reset();
+        this.each_drawer(function(drawer) {
+          drawer.reset();
+        });
       }
 
       Drawer.prototype.draw = function(network) {
-        this.network_drawer.draw(network);
-        this.phase_diagram_drawer.draw(network);
-        this.spike_diagram_drawer.draw(network);
+        this.each_drawer(function(drawer) {
+          drawer.draw(network);
+        });
       }
 
       Drawer.prototype.redraw = function(network, current_time) {
-        this.phase_diagram_drawer.redraw(network, current_time);
-        this.spike_diagram_drawer.redraw(network, current_time);
+        this.each_drawer(function(drawer) {
+          drawer.redraw(network, current_time);
+        });
       }
 
-      Drawer.prototype.fire_neuron = function(neuron, current_time) {
-        this.network_drawer.fire_neuron(neuron);
-        this.phase_diagram_drawer.register_reset(neuron, current_time);
-        this.spike_diagram_drawer.register_reset(neuron, current_time);
+      Drawer.prototype.neuron_fired = function(neuron, current_time) {
+        this.each_drawer(function(drawer) {
+          drawer.neuron_fired(neuron, current_time);
+        });
       }
 
       Drawer.prototype.neuron_click = function(callback) {
@@ -769,7 +784,7 @@
       Simulator.prototype.event_reset = function(event) {
         var recipient = event.options.recipient;
 
-        this.drawer.fire_neuron(recipient, this.current_time);
+        this.drawer.neuron_fired(recipient, this.current_time);
 
         recipient.reset(this.current_time);
         var next_reset = recipient.next_reset(this.current_time);
@@ -796,7 +811,7 @@
         // because of rounding errors the effect of a spike causing a reset needs to be handled explicitly
         var fired = event.options.recipient.receive_spike(this.current_time, event.options.strength);
         if(fired) {
-          this.drawer.fire_neuron(event.options.recipient, this.current_time);
+          this.drawer.neuron_fired(event.options.recipient, this.current_time);
           this.send_spikes(event.options.recipient);
           this.event_queue.add_event(new Event(this.current_time+1, "reset", {recipient: event.options.recipient}));
         } else {
