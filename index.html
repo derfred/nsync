@@ -533,12 +533,7 @@
         for (var j=0; j < tabs.length; j++) {
           tabs[j].style.display = "none";
         };
-
-        if(element.id == "spikes_link") {
-          $("spikes").style.display = "block";
-        } else {
-          $("phases").style.display = "block";
-        }
+        $(element.id.replace("_link", "")).style.display = "block";
       }
 
       Drawer.prototype.register_tab_switcher = function() {
