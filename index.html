@@ -459,6 +459,35 @@
 
 
 
+      function PhaseDifferenceDiagramDrawer() {
+        this.canvas = new Canvas("phase_differences_canvas");
+        this.lookback_time = 5;
+        this.reset();
+      }
+
+      PhaseDifferenceDiagramDrawer.prototype.reset = function() {
+        this.phase_data = {};
+      }
+
+      PhaseDifferenceDiagramDrawer.prototype.clear = function(network) {
+        this.canvas.clear();
+        this.canvas.draw_coordinate_system(network);
+      }
+
+      PhaseDifferenceDiagramDrawer.prototype.draw = function(network) {
+        this.clear(network);
+      }
+
+      PhaseDifferenceDiagramDrawer.prototype.redraw = function(network, current_time) {
+        
+      }
+
+      PhaseDifferenceDiagramDrawer.prototype.neuron_fired = function(neuron, current_time) {
+        
+      }
+
+
+
       function Drawer() {
         this.network_drawer = new NetworkDrawer();
         this.phase_diagram_drawer = new PhaseDiagramDrawer();
