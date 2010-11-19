@@ -591,7 +591,12 @@
       Network.fully_connected = function(total, options) {
         var network = new Network();
         for (var i=0; i < total; i++) {
-          network.add_neuron(new Neuron(network, options.initial_phases[i]));
+          var neuron = new Neuron(network, {
+            C: options.C,
+            gamma: options.gamma,
+            initial_phase: options.initial_phases[i]
+          });
+          network.add_neuron(neuron);
         };
 
         for (var i=0; i < network.neurons.length; i++) {
@@ -628,11 +633,11 @@
 
 
 
-      function Neuron(network, initial_phase) {
+      function Neuron(network, options) {
         this.network = network;
-        this.initial_phase = initial_phase;
-        this.gamma = 1;
-        this.C = 1.04;
+        this.initial_phase = options.initial_phase;
+        this.gamma = options.gamma;
+        this.C = options.C;
       };
 
       Neuron.prototype.initialize_last_reset = function(current_time) {
@@ -883,6 +888,7 @@
       }
 
 
+
       function NetworkForm() {
         NetworkForm.update_initial_phases_form();
       }
@@ -932,6 +938,14 @@
         return false;
       }
 
+      NetworkForm.prototype.C = function() {
+        return $F("init_c");
+      }
+
+      NetworkForm.prototype.gamma = function() {
+        return $F("init_gamma");
+      }
+
       NetworkForm.prototype.n = function() {
         return $F("init_n");
       }
@@ -977,18 +991,13 @@
 
 
       function generate_network() {
-        if(simulator) {
-          simulator.stop(function() {
-            var network = Network.fully_connected(network_form.n(), {
-              delay: network_form.tau(),
-              strength: network_form.epsilon(),
-              initial_phases: network_form.initial_phases()
-            });
-            simulator.initialize(network, drawer);
-            simulator.run();
-          });
-        }
-        return false;
+        return Network.fully_connected(network_form.n(), {
+          delay: network_form.tau(),
+          strength: network_form.epsilon(),
+          C: network_form.C(),
+          gamma: network_form.gamma(),
+          initial_phases: network_form.initial_phases()
+        });
       }
 
 
@@ -996,14 +1005,19 @@
       var drawer = false;
       var network_form = false;
       window.onload = function() {
-        $("init_controls").onsubmit = generate_network;
+        $("init_controls").onsubmit = function() {
+          if(simulator) {
+            simulator.stop(function() {
+              var network = generate_network();
+              simulator.initialize(network, drawer);
+              simulator.run();
+            });
+          }
+          return false;
+        };
         network_form = new NetworkForm();
 
-        var network = Network.fully_connected(network_form.n(), {
-          delay: network_form.tau(),
-          strength: network_form.epsilon(),
-          initial_phases: network_form.initial_phases()
-        });
+        var network = generate_network();
         var drawer = new Drawer();
 
         simulator = new Simulator();
@@ -1020,6 +1034,8 @@
   <body>
     <form id="init_controls" class="section">
       <h2>Network Parameters</h2>
+      <p><label>Driving Current (C)</label><input type="text" value="1.04" id="init_c"></p>
+      <p><label>Leak Constant (&gamma;)</label><input type="text" value="1.0" id="init_gamma"></p>
       <p><label>Number of Neurons (N)</label><input type="text" value="5" id="init_n"></p>
       <p><label>Connection Strength (&epsilon;)</label><input type="text" value="0.025" id="init_epsilon"></p>
       <p><label>Signal delay (&tau;)</label><input type="text" value="0.31" id="init_tau"></p>
