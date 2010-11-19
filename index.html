@@ -34,6 +34,25 @@
         width: 250px;
       }
 
+      #init_controls h3 {
+        margin-top: 15px;
+        margin-bottom: 5px;
+        padding: 5px;
+        background: #efefef;
+      }
+
+      #init_controls h3 a {
+        margin-right: 10px;
+      }
+
+      #initial_phase_holder {
+        padding: 5px;
+      }
+
+      #initial_phase_holder td.radio {
+        text-align: center;
+      }
+
       #network_holder {
         position: relative;
         clear: both;
@@ -571,9 +590,8 @@
 
       Network.fully_connected = function(total, options) {
         var network = new Network();
-
         for (var i=0; i < total; i++) {
-          network.add_neuron(new Neuron(network, Math.random()));
+          network.add_neuron(new Neuron(network, options.initial_phases[i]));
         };
 
         for (var i=0; i < network.neurons.length; i++) {
@@ -865,10 +883,107 @@
       }
 
 
+      function NetworkForm() {
+        NetworkForm.update_initial_phases_form();
+      }
+
+      NetworkForm.build_initial_phases_form = function(total) {
+        var html = "<a href='#' id='randomize_phases'>Randomize</a><table>";
+
+        html += "<tr><th></th>";
+        for (var i=0; i < total; i++) {
+          html += ("<th><input type='text' id='phase" + i + "' value='" + Math.random() + "'></th>");
+        };
+        html += "</tr>";
+
+        for (var i=0; i < total; i++) {
+          html += "<tr>";
+          html += ("<td>Neuron " + i + "</td>");
+          for(var j=0;j < total; j++) {
+            if(i==j) {
+              html += ("<td class='radio'><input type='radio' name='neuron" + i + "' value='" + j + "' checked></td>");
+            } else {
+              html += ("<td class='radio'><input type='radio' name='neuron" + i + "' value='" + j + "'></td>");
+            }
+          }
+          html += "</tr>";
+        };
+
+        return html + "</table>";
+      }
+
+      NetworkForm.update_initial_phases_form = function() {
+        $("initial_phase_holder").innerHTML = NetworkForm.build_initial_phases_form($F("init_n"));
+        $("randomize_phases").onclick = NetworkForm.update_initial_phases_form;
+
+        if(!$("toggle_initial_phase_holder").onclick) {
+          $("toggle_initial_phase_holder").onclick = function(e) {
+            if($("initial_phase_holder").style.display == "none") {
+              $("initial_phase_holder").style.display = "block";
+              e.currentTarget.innerHTML = "-";
+            } else {
+              $("initial_phase_holder").style.display = "none";
+              e.currentTarget.innerHTML = "+";
+            }
+            return false;
+          }
+        }
+
+        return false;
+      }
+
+      NetworkForm.prototype.n = function() {
+        return $F("init_n");
+      }
+
+      NetworkForm.prototype.tau = function() {
+        return $F("init_tau");
+      }
+
+      NetworkForm.prototype.epsilon = function() {
+        return $F("init_epsilon");
+      }
+
+      NetworkForm.prototype.getCheckedValue = function(name) {
+        radioObj = document.getElementsByName(name);
+        if(!radioObj) {
+          return "";
+        }
+
+        var radioLength = radioObj.length;
+        if(radioLength == undefined) {
+          if(radioObj.checked) {
+            return radioObj.value;
+          } else {
+            return "";
+          }
+        }
+
+        for(var i = 0; i < radioLength; i++) {
+          if(radioObj[i].checked) {
+            return radioObj[i].value;
+          }
+        }
+        return "";
+      }
+
+      NetworkForm.prototype.initial_phases = function() {
+        var result = [];
+        for(var i=0;i<this.n();i++) {
+          result.push($F("phase"+this.getCheckedValue("neuron"+i)));
+        }
+        return result;
+      }
+
+
       function generate_network() {
         if(simulator) {
           simulator.stop(function() {
-            var network = Network.fully_connected($F("init_n"), {delay: $F("init_tau"), strength: $F("init_epsilon")});
+            var network = Network.fully_connected(network_form.n(), {
+              delay: network_form.tau(),
+              strength: network_form.epsilon(),
+              initial_phases: network_form.initial_phases()
+            });
             simulator.initialize(network, drawer);
             simulator.run();
           });
@@ -879,10 +994,16 @@
 
       var simulator = false;
       var drawer = false;
+      var network_form = false;
       window.onload = function() {
         $("init_controls").onsubmit = generate_network;
+        network_form = new NetworkForm();
 
-        var network = Network.fully_connected(5, {delay: 0.31, strength: 0.025});
+        var network = Network.fully_connected(network_form.n(), {
+          delay: network_form.tau(),
+          strength: network_form.epsilon(),
+          initial_phases: network_form.initial_phases()
+        });
         var drawer = new Drawer();
 
         simulator = new Simulator();
@@ -902,6 +1023,12 @@
       <p><label>Number of Neurons (N)</label><input type="text" value="5" id="init_n"></p>
       <p><label>Connection Strength (&epsilon;)</label><input type="text" value="0.025" id="init_epsilon"></p>
       <p><label>Signal delay (&tau;)</label><input type="text" value="0.31" id="init_tau"></p>
+
+      <h3><a href="#" id="toggle_initial_phase_holder" class="">+</a>Initial Phases</h3>
+      <div id="initial_phase_holder" style="display: none;">
+        
+      </div>
+
       <input type="submit" value="Generate Network">
     </form>
     <div id="network_holder" class="section">
