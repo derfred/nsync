@@ -131,6 +131,7 @@
       }
 
 
+
       function Canvas(id) {
         this.ctx = document.getElementById(id).getContext("2d");
         this.width = this.ctx.canvas.width;
@@ -156,7 +157,7 @@
         this.ctx.clearRect(0, 0, this.width, this.height);
       }
 
-      Canvas.prototype.draw_coordinate_system = function(network) {
+      Canvas.prototype.draw_racetrack_coordinate_system = function(network) {
         var stroke_width = 2;
 
         var padding = this.padding();
@@ -182,6 +183,20 @@
         // this is the "now" line
         this.line(this.width-2*padding.horizontal, padding.vertical,
                   this.width-2*padding.horizontal, this.height-padding.vertical,
+                  {lineWidth: stroke_width, strokeStyle: "#aaa"});
+      }
+
+      Canvas.prototype.draw_relative_phases_coordinate_system = function() {
+        var stroke_width = 2;
+
+        var padding = this.padding();
+
+        this.arrow(padding.horizontal, this.height-padding.vertical, padding.horizontal, padding.vertical, {lineWidth: stroke_width});
+        this.arrow(padding.horizontal, this.height-padding.vertical, this.width-3*padding.horizontal, this.height-padding.vertical, {lineWidth: stroke_width});
+
+        // this is the "now" line
+        this.line(this.width-4*padding.horizontal, padding.vertical,
+                  this.width-4*padding.horizontal, this.height-padding.vertical,
                   {lineWidth: stroke_width, strokeStyle: "#aaa"});
       }
 
@@ -220,6 +235,32 @@
         var arm_two_y = unit.x*arm_length * Math.sin(-opening_angle/2) + unit.y*arm_length * Math.cos(-opening_angle/2) + y2;
         this.line(arm_two_x, arm_two_y, x2, y2, options);
       }
+
+      Canvas.prototype.rect = function(x1, y1, x2, y2, options) {
+        this.ctx.save();
+        this.ctx.beginPath();
+
+        this.set_options(options);
+
+        this.ctx.moveTo(x1, y1);
+        this.ctx.lineTo(x2, y1);
+        this.ctx.lineTo(x2, y2);
+        this.ctx.lineTo(x1, y2);
+
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.restore();
+      }
+
+      Canvas.prototype.text = function(text, x, y, options) {
+        this.ctx.save();
+        this.set_options(options);
+
+        this.ctx.fillText(text, x, y);
+
+        this.ctx.restore();
+      }
+
 
 
       function NetworkDrawer() {
@@ -342,7 +383,7 @@
 
       PhaseDiagramDrawer.prototype.clear = function(network) {
         this.canvas.clear();
-        this.canvas.draw_coordinate_system(network);
+        this.canvas.draw_racetrack_coordinate_system(network);
       }
 
       PhaseDiagramDrawer.prototype.calc_unit_time_width = function(padding) {
@@ -435,7 +476,7 @@
 
       SpikeDiagramDrawer.prototype.clear = function(network) {
         this.canvas.clear();
-        this.canvas.draw_coordinate_system(network);
+        this.canvas.draw_racetrack_coordinate_system(network);
       }
 
       SpikeDiagramDrawer.prototype.draw = function(network) {
@@ -485,6 +526,7 @@
       function PhaseDifferenceDiagramDrawer() {
         this.canvas = new Canvas("phase_differences_canvas");
         this.lookback_time = 5;
+        this.colors = ["#ff0000", "#00ff00", "#0000ff", "#ff00ff", "#ffff00", "#00ffff"];
         this.reset();
       }
 
@@ -494,15 +536,94 @@
 
       PhaseDifferenceDiagramDrawer.prototype.clear = function(network) {
         this.canvas.clear();
-        this.canvas.draw_coordinate_system(network);
+        this.canvas.draw_relative_phases_coordinate_system(network);
       }
 
       PhaseDifferenceDiagramDrawer.prototype.draw = function(network) {
         this.clear(network);
+
+        for (var i=1; i < network.neurons.length; i++) {
+          this.phase_data[network.neurons[i].id] = [];
+        };
       }
 
       PhaseDifferenceDiagramDrawer.prototype.redraw = function(network, current_time) {
-        
+        this.save_phases(network, current_time);
+        this.update_diagram(network, current_time);
+      }
+
+      PhaseDifferenceDiagramDrawer.prototype.update_diagram = function(network, current_time) {
+        this.clear(network);
+
+        var padding = this.canvas.padding();
+        var height = this.canvas.height - padding.vertical;
+
+        var time_width = this.calc_unit_time_width(padding);
+        var now = this.canvas.width-4*padding.horizontal;
+
+        var coords_for = function(data_point) {
+          return {
+            x: now-((current_time-data_point.time)*time_width),
+            y: height*(1-data_point.phase_delta)
+          };
+        };
+
+        this.canvas.ctx.save();
+        for (var i=1; i < network.neurons.length; i++) {
+          this.canvas.rect(this.canvas.width-(2.5*padding.horizontal),
+                           (i-1)*2*padding.horizontal+padding.vertical,
+                           this.canvas.width-(0.5*padding.horizontal),
+                           (i)*2*padding.horizontal+padding.vertical,
+                           {fillStyle: this.colors[(i-1)%this.colors.length]});
+          this.canvas.text(network.neurons[i].id,
+                           this.canvas.width-(1.5*padding.horizontal),
+                           (i-0.25)*2*padding.horizontal+padding.vertical,
+                           {fillStyle: "black", textAlign: "center", font: "15px sans-serif"});
+
+          this.canvas.ctx.strokeStyle = this.colors[(i-1)%this.colors.length];
+          this.canvas.ctx.lineWidth = 1;
+
+          this.canvas.ctx.beginPath();
+
+          var phase_data = this.phase_data[network.neurons[i].id];
+          if(phase_data.length > 0) {
+            var initial = coords_for(phase_data[phase_data.length-1])
+            this.canvas.ctx.moveTo(initial.x, initial.y);
+
+            for(var j=phase_data.length-2; j >= 0; j--) {
+              var coords = coords_for(phase_data[j]);
+              if(coords.x > padding.horizontal) {
+                this.canvas.ctx.lineTo(coords.x, coords.y);
+              }
+            }
+          }
+
+          this.canvas.ctx.stroke();
+        }
+        this.canvas.ctx.restore();
+      }
+
+      PhaseDifferenceDiagramDrawer.prototype.save_phases = function(network, current_time) {
+        var reference = network.neurons[0].current_phase(current_time);
+        for (var i=1; i < network.neurons.length; i++) {
+          var phase_delta = Math.abs(reference - network.neurons[i].current_phase(current_time));
+          this.write_phase(network.neurons[i].id, current_time, phase_delta);
+        };
+      }
+
+      PhaseDifferenceDiagramDrawer.prototype.write_phase = function(neuron_id, current_time, phase_delta) {
+        this.phase_data[neuron_id].push({
+          time: current_time,
+          phase_delta: phase_delta
+        });
+
+        while(this.phase_data[neuron_id][0].time < (current_time-this.lookback_time)) {
+          this.phase_data[neuron_id].shift();
+        }
+      }
+
+      PhaseDifferenceDiagramDrawer.prototype.calc_unit_time_width = function(padding) {
+        return (this.canvas.width-3*padding.horizontal)/this.lookback_time;
       }
 
       PhaseDifferenceDiagramDrawer.prototype.neuron_fired = function(neuron, current_time) {
