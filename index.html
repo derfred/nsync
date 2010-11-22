@@ -885,11 +885,6 @@
         return event;
       }
 
-      EventQueue.prototype.prepend_event = function(type, options) {
-        this.sort_queue();
-        this.add_event(new Event(this.events[0].time-0.000001, type, options));
-      }
-
       EventQueue.prototype.dump_queue = function() {
         result = [];
         for(var i=0;i<this.events.length;i++) {
@@ -1000,6 +995,7 @@
 
       Simulator.prototype.execute_timed = function(event, callback) {
         self = this;
+        this.next_event_time = event.time;
         setTimeout(function() {
           self.current_time = event.time;
           callback.apply(self, [event]);
@@ -1012,12 +1008,12 @@
       }
 
       Simulator.prototype.stop = function(callback) {
-        this.event_queue.prepend_event("stop", {callback: callback});
+        this.event_queue.add_event(new Event(this.next_event_time, "stop", {callback: callback}))
       }
 
       Simulator.prototype.perturb_neuron = function(neuron_id, strength) {
         var neuron = this.network.get_neuron_by(neuron_id);
-        this.event_queue.prepend_event("spike", {recipient: neuron, strength: strength});
+        this.event_queue.add_event(new Event(this.next_event_time, "spike", {recipient: neuron, strength: strength}))
       }
 
 
