@@ -833,6 +833,10 @@
         }
       }
 
+      Event.prototype.toString = function() {
+        return "time: " + this.time + " type: " + this.type;
+      }
+
 
 
       function EventQueue() {
@@ -884,6 +888,14 @@
       EventQueue.prototype.prepend_event = function(type, options) {
         this.sort_queue();
         this.add_event(new Event(this.events[0].time-0.000001, type, options));
+      }
+
+      EventQueue.prototype.dump_queue = function() {
+        result = [];
+        for(var i=0;i<this.events.length;i++) {
+          result.push(this.events[i].toString());
+        }
+        return result;
       }
 
 
