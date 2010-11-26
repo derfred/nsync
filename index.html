@@ -98,6 +98,11 @@
         };
       }
 
+      function getClassName(obj) {
+        if (typeof obj != "object" || obj === null) return false;
+        return /(\w+)\(/.exec(obj.constructor.toString())[1];
+      }
+
       Raphael.fn.arrow = function (x1, y1, x2, y2, size) {
         // some magic numbers
         var opening_angle = 0.4 * Math.PI;
@@ -329,6 +334,10 @@
         this.neuron_nodes[neuron.id] = node;
       };
 
+      NetworkDrawer.prototype.update = function(network, current_time) {
+        
+      }
+
       NetworkDrawer.prototype.redraw = function(network, current_time) {
         
       }
@@ -377,6 +386,8 @@
         this.reset();
       }
 
+      PhaseDiagramDrawer.type = "phases";
+
       PhaseDiagramDrawer.prototype.reset = function() {
         this.phase_data = {};
       }
@@ -398,18 +409,13 @@
         };
       }
 
-      PhaseDiagramDrawer.prototype.redraw = function(network, current_time) {
-        this.save_phases(network, current_time);
-        this.update_diagram(network, current_time);
-      }
-
-      PhaseDiagramDrawer.prototype.save_phases = function(network, current_time) {
+      PhaseDiagramDrawer.prototype.update = function(network, current_time) {
         for (var i=0; i < network.neurons.length; i++) {
           this.write_phase(network.neurons[i].id, current_time, network.neurons[i].current_phase(current_time));
         };
       }
 
-      PhaseDiagramDrawer.prototype.update_diagram = function(network, current_time) {
+      PhaseDiagramDrawer.prototype.redraw = function(network, current_time) {
         this.clear(network);
 
         var padding = this.canvas.padding();
@@ -470,6 +476,8 @@
         this.reset();
       }
 
+      SpikeDiagramDrawer.type = "spikes";
+
       SpikeDiagramDrawer.prototype.reset = function() {
         this.spike_data = {};
       }
@@ -489,6 +497,10 @@
 
       SpikeDiagramDrawer.prototype.calc_unit_time_width = function(padding) {
         return (this.canvas.width-3*padding.horizontal)/this.lookback_time;
+      }
+
+      SpikeDiagramDrawer.prototype.update = function(network, current_time) {
+
       }
 
       SpikeDiagramDrawer.prototype.redraw = function(network, current_time) {
@@ -530,6 +542,8 @@
         this.reset();
       }
 
+      PhaseDifferenceDiagramDrawer.type = "phase_differences";
+
       PhaseDifferenceDiagramDrawer.prototype.reset = function() {
         this.phase_data = {};
       }
@@ -548,11 +562,6 @@
       }
 
       PhaseDifferenceDiagramDrawer.prototype.redraw = function(network, current_time) {
-        this.save_phases(network, current_time);
-        this.update_diagram(network, current_time);
-      }
-
-      PhaseDifferenceDiagramDrawer.prototype.update_diagram = function(network, current_time) {
         this.clear(network);
 
         var padding = this.canvas.padding();
@@ -603,7 +612,7 @@
         this.canvas.ctx.restore();
       }
 
-      PhaseDifferenceDiagramDrawer.prototype.save_phases = function(network, current_time) {
+      PhaseDifferenceDiagramDrawer.prototype.update = function(network, current_time) {
         var reference = network.neurons[0].current_phase(current_time);
         for (var i=1; i < network.neurons.length; i++) {
           var phase_delta = Math.abs(reference - network.neurons[i].current_phase(current_time));
@@ -663,8 +672,12 @@
       }
 
       Drawer.prototype.redraw = function(network, current_time) {
+	var current_tab = this.current_tab;
         this.each_drawer(function(drawer) {
-          drawer.redraw(network, current_time);
+          drawer.update(network, current_time);
+          if(drawer.constructor.type == current_tab) {
+            drawer.redraw(network, current_time);
+          }
         });
       }
 
@@ -688,7 +701,8 @@
         for (var j=0; j < tabs.length; j++) {
           tabs[j].style.display = "none";
         };
-        $(element.id.replace("_link", "")).style.display = "block";
+        this.current_tab = element.id.replace("_link", "");
+        $(this.current_tab).style.display = "block";
       }
 
       Drawer.prototype.register_tab_switcher = function() {
@@ -700,6 +714,7 @@
             return false;
           }
         };
+        this.current_tab = "spikes";
       }
 
 
@@ -898,7 +913,7 @@
       function Simulator() {
         this.event_queue = new EventQueue();
 
-        this.speed = 10000;
+        this.speed = 1000;
         this.redraw_interval = 0.01;
       }
 
