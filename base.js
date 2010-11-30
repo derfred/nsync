@@ -200,10 +200,10 @@ EventQueue.prototype.dump_queue = function() {
 
 
 
-function Simulator() {
+function Simulator(time_factor) {
   this.event_queue = new EventQueue();
 
-  this.speed = 1000;
+  this.time_factor = time_factor ? time_factor : 1000;
   this.redraw_interval = 0.01;
 }
 
@@ -214,8 +214,10 @@ Simulator.prototype.initialize = function(network, drawer) {
   this.current_time = 0.0;
   this.event_queue.clear();
 
-  this.drawer.reset();
-  this.drawer.draw(network);
+  if(this.drawer) {
+    this.drawer.reset();
+    this.drawer.draw(network);
+  }
 
   for (var i=0; i < this.network.neurons.length; i++) {
     var neuron = this.network.neurons[i];
@@ -223,14 +225,23 @@ Simulator.prototype.initialize = function(network, drawer) {
     this.event_queue.add_event(new Event(neuron.next_reset(this.current_time), "reset", {recipient: neuron}));
   };
 
-  this.event_queue.add_event(new Event(this.redraw_interval, "redraw"));
+  if(this.drawer) {
+    this.event_queue.add_event(new Event(this.redraw_interval, "redraw"));
+  }
 }
 
-Simulator.prototype.send_spikes = function(sender) {
-  var post_synaptic_neurons = sender.post_synaptic_neurons();
+Simulator.prototype.neuron_reset = function(neuron) {
+  if(this.drawer) {
+    this.drawer.neuron_fired(neuron, this.current_time);
+  }
+
+  var next_reset = neuron.next_reset(this.current_time);
+  this.event_queue.add_event(new Event(next_reset, "reset", {recipient: neuron}));
+
+  var post_synaptic_neurons = neuron.post_synaptic_neurons();
   for (var i=0; i < post_synaptic_neurons.length; i++) {
     this.event_queue.add_event(new Event(this.current_time+post_synaptic_neurons[i].delay, "spike", {
-      sender: sender,
+      sender: neuron,
       recipient: post_synaptic_neurons[i].neuron,
       strength: post_synaptic_neurons[i].strength
     }));
@@ -239,14 +250,8 @@ Simulator.prototype.send_spikes = function(sender) {
 
 Simulator.prototype.event_reset = function(event) {
   var recipient = event.options.recipient;
-
-  this.drawer.neuron_fired(recipient, this.current_time);
-
   recipient.reset(this.current_time);
-  var next_reset = recipient.next_reset(this.current_time);
-  this.event_queue.add_event(new Event(next_reset, "reset", {recipient: recipient}));
-
-  this.send_spikes(recipient);
+  this.neuron_reset(recipient);
 }
 
 Simulator.prototype.event_redraw = function(event) {
@@ -267,9 +272,7 @@ Simulator.prototype.event_spike = function(event) {
   // because of rounding errors the effect of a spike causing a reset needs to be handled explicitly
   var fired = event.options.recipient.receive_spike(this.current_time, event.options.strength);
   if(fired) {
-    this.drawer.neuron_fired(event.options.recipient, this.current_time);
-    this.send_spikes(event.options.recipient);
-    this.event_queue.add_event(new Event(this.current_time+1, "reset", {recipient: event.options.recipient}));
+    this.neuron_reset(event.options.recipient);
   } else {
     var next_reset = event.options.recipient.next_reset(this.current_time);
     this.event_queue.add_event(new Event(next_reset, "reset", {recipient: event.options.recipient}));
