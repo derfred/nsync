@@ -313,5 +313,3 @@ Simulator.prototype.perturb_neuron = function(neuron_id, strength) {
   var neuron = this.network.get_neuron_by(neuron_id);
   this.event_queue.add_event(new Event(this.next_event_time, "spike", {recipient: neuron, strength: strength}))
 }
-
-print("blah")
