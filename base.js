@@ -6,10 +6,17 @@ function Network() {
 Network.fully_connected = function(total, options) {
   var network = new Network();
   for (var i=0; i < total; i++) {
+    var initial_phase;
+    if(!options.initial_phases) {
+      initial_phase = Math.random();
+    } else {
+      initial_phase = options.initial_phases[i];
+    }
+
     var neuron = new Neuron(network, {
       C: options.C,
       gamma: options.gamma,
-      initial_phase: options.initial_phases[i]
+      initial_phase: initial_phase
     });
     network.add_neuron(neuron);
   };

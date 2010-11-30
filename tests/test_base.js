@@ -1,10 +1,10 @@
-var evt_queue;
-
 module("Event Queue", {
   setup: function() {
     evt_queue = new EventQueue();
   }
 });
+
+var evt_queue;
 
 test("initialization", function() {
   ok(evt_queue.empty());
@@ -40,3 +40,25 @@ test("finding an item by predicate", function() {
 
   equals(evt3, evt_queue.pop_next_event(function(e) { return e.type == "age_check"; }));
 });
+
+
+module("Network");
+
+var network;
+
+test("creating fully_connected network", function() {
+  network = Network.fully_connected(10, {
+    delay: 0.3,
+    strength: 0.023,
+    C: 1.04,
+    gamma: 1
+  });
+
+  equals(10, network.neurons.length);
+
+  for(var i=0;i<network.neurons.length;i++) {
+    equals(9, network.neurons[i].post_synaptic_neurons().length);
+  }
+});
+
+
