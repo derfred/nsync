@@ -280,7 +280,9 @@ Simulator.prototype.event_redraw = function(event) {
 }
 
 Simulator.prototype.event_spike = function(event) {
-  this.drawer.redraw(this.network, this.current_time);
+  if(this.drawer) {
+    this.drawer.redraw(this.network, this.current_time);
+  }
 
   var reset_event_index = this.event_queue.find_next_event_index(function(evt) {
     return evt.type == "reset" && evt.options.recipient == event.options.recipient;
@@ -288,7 +290,7 @@ Simulator.prototype.event_spike = function(event) {
   if(reset_event_index) {
     this.event_queue.remove_indexed_event(reset_event_index);
   }
-
+  
   // because of rounding errors the effect of a spike causing a reset needs to be handled explicitly
   var fired = event.options.recipient.receive_spike(this.current_time, event.options.strength);
   if(fired) {
@@ -297,8 +299,6 @@ Simulator.prototype.event_spike = function(event) {
     var next_reset = event.options.recipient.next_reset(this.current_time);
     this.event_queue.add_event(new Event(next_reset, "reset", {recipient: event.options.recipient}));
   }
-
-  this.drawer.redraw(this.network, this.current_time);
 }
 
 Simulator.prototype.event_stop = function(event) {
@@ -330,7 +330,11 @@ Simulator.prototype.execute_timed = function(event, callback) {
   }, event.wait_time(self.current_time)*this.speed);
 }
 
-Simulator.prototype.run = function() {
+Simulator.prototype.start = function(stop_time, callback) {
+  if(stop_time) {
+    this.event_queue.add_event(new Event(stop_time, "stop", {callback: callback}));
+  }
+
   var event = this.event_queue.pop_next_event();
   this.execute_event(event);
 }
