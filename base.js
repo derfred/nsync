@@ -146,14 +146,6 @@ function Event(time, type, options) {
   }
 }
 
-Event.prototype.wait_time = function(current_time) {
-  if(this.time > current_time) {
-    return this.time - current_time;
-  } else {
-    return 0;
-  }
-}
-
 Event.prototype.toString = function() {
   return "time: " + this.time + " type: " + this.type;
 }
@@ -223,7 +215,7 @@ EventQueue.prototype.dump_queue = function() {
 function Simulator(time_factor) {
   this.event_queue = new EventQueue();
 
-  this.time_factor = time_factor ? time_factor : 1000;
+  this.time_factor = time_factor != undefined ? time_factor : 1000;
   this.redraw_interval = 0.01;
 }
 
@@ -322,12 +314,22 @@ Simulator.prototype.execute_event = function(evt) {
 }
 
 Simulator.prototype.execute_timed = function(event, callback) {
-  self = this;
+  var self = this;
   this.next_event_time = event.time;
+
   setTimeout(function() {
     self.current_time = event.time;
     callback.apply(self, [event]);
-  }, event.wait_time(self.current_time)*this.speed);
+  }, this.wait_time(event));
+}
+
+Simulator.prototype.wait_time = function(event) {
+  if(event.time >= this.current_time) {
+    var wait = event.time*this.time_factor + this.real_start_time - (new Date()).getTime();
+    return Math.max(wait, 1);
+  } else {
+    return 1;
+  }
 }
 
 Simulator.prototype.start = function(stop_time, callback) {
@@ -335,6 +337,7 @@ Simulator.prototype.start = function(stop_time, callback) {
     this.event_queue.add_event(new Event(stop_time, "stop", {callback: callback}));
   }
 
+  this.real_start_time = (new Date()).getTime();
   var event = this.event_queue.pop_next_event();
   this.execute_event(event);
 }

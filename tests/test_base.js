@@ -73,7 +73,7 @@ asyncTest("time limited run should take about 1s", 2, function() {
     ok(true, "callback happened");
 
     var time_delta = (new Date()).getTime() - start_time;
-    ok(time_delta > 700 && time_delta < 1300, "time difference not within expected window: actual="+time_delta);
+    ok(time_delta > 900 && time_delta < 1500, "time difference not within expected window: actual="+time_delta);
   });
 
   setTimeout(function() {
@@ -81,7 +81,13 @@ asyncTest("time limited run should take about 1s", 2, function() {
   }, 1500);
 });
 
-asyncTest("simulating single neuron", 1, function() {
+module("Simulator with zero time_factor", {
+  setup: function() {
+    simulator = new Simulator(0);
+  }
+});
+
+asyncTest("simulating free dynamics of single neuron", 1, function() {
   network = new Network();
   var neuron = new Neuron(network, merge(Network.default_options, {
     initial_phase: 0
@@ -89,7 +95,9 @@ asyncTest("simulating single neuron", 1, function() {
   network.add_neuron(neuron);
   simulator.initialize(network);
 
+  var start_time = (new Date()).getTime();
   simulator.start(1.2, function() {
+    var time_delta = (new Date()).getTime() - start_time;
     equals(network.neurons[0].last_reset, 1);
     start();
   });
