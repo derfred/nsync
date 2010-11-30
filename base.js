@@ -1,9 +1,29 @@
+function merge(left, right) {
+  if(!right) {
+    return left;
+  } else {
+    for(k in left) {
+      if(!right[k]) {
+        right[k] = left[k];
+      }
+    }
+    return left;
+  }
+}
+
 function Network() {
   this.neurons = [];
   this.connections = {};
 }
 
 Network.fully_connected = function(total, options) {
+  options = merge({
+    delay: 0.3,
+    strength: 0.023,
+    C: 1.04,
+    gamma: 1
+  }, options);
+
   var network = new Network();
   for (var i=0; i < total; i++) {
     var initial_phase;

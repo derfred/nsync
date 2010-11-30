@@ -47,12 +47,7 @@ module("Network");
 var network;
 
 test("creating fully_connected network", function() {
-  network = Network.fully_connected(10, {
-    delay: 0.3,
-    strength: 0.023,
-    C: 1.04,
-    gamma: 1
-  });
+  network = Network.fully_connected(10);
 
   equals(10, network.neurons.length);
 
