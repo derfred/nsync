@@ -92,15 +92,15 @@ Canvas.prototype.draw_racetrack_coordinate_system = function(network) {
     this.line(padding.horizontal*0.5, padding.vertical+(i+1)*spacing,
               padding.horizontal, padding.vertical+(i+1)*spacing,
               {lineWidth: stroke_width});
-            };
+  };
 
   // this is the "now" line
   this.line(this.width-2*padding.horizontal, padding.vertical,
             this.width-2*padding.horizontal, this.height-padding.vertical,
             {lineWidth: stroke_width, strokeStyle: "#aaa"});
-          }
+}
 
-          Canvas.prototype.draw_relative_phases_coordinate_system = function() {
+Canvas.prototype.draw_relative_phases_coordinate_system = function() {
   var stroke_width = 2;
 
   var padding = this.padding();
@@ -112,9 +112,9 @@ Canvas.prototype.draw_racetrack_coordinate_system = function(network) {
   this.line(this.width-4*padding.horizontal, padding.vertical,
             this.width-4*padding.horizontal, this.height-padding.vertical,
             {lineWidth: stroke_width, strokeStyle: "#aaa"});
-          }
+}
 
-          Canvas.prototype.line = function(x1, y1, x2, y2, options) {
+Canvas.prototype.line = function(x1, y1, x2, y2, options) {
   this.ctx.save();
   this.ctx.beginPath();
 
@@ -429,12 +429,12 @@ SpikeDiagramDrawer.prototype.redraw = function(network, current_time) {
       if(x > padding.horizontal) {
         this.canvas.line(x, padding.vertical+(i+0.1)*spacing,
                          x, padding.vertical+(i+0.9)*spacing);
-                      }
-                    }
-                  }
-                }
+      }
+    }
+  }
+}
 
-                SpikeDiagramDrawer.prototype.neuron_fired = function(neuron, current_time) {
+SpikeDiagramDrawer.prototype.neuron_fired = function(neuron, current_time) {
   this.spike_data[neuron.id].push(current_time);
 
   while(this.spike_data[neuron.id][0] < current_time-this.lookback_time) {
