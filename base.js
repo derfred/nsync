@@ -16,20 +16,20 @@ function Network() {
   this.connections = {};
 }
 
+Network.default_options = {
+  delay: 0.3,
+  strength: 0.023,
+  C: 1.04,
+  gamma: 1
+};
+
 Network.fully_connected = function(total, options) {
-  options = merge({
-    delay: 0.3,
-    strength: 0.023,
-    C: 1.04,
-    gamma: 1
-  }, options);
+  options = merge(Network.default_options, options);
 
   var network = new Network();
   for (var i=0; i < total; i++) {
-    var initial_phase;
-    if(!options.initial_phases) {
-      initial_phase = Math.random();
-    } else {
+    var initial_phase = undefined;
+    if(options.initial_phases) {
       initial_phase = options.initial_phases[i];
     }
 
@@ -77,7 +77,7 @@ Network.prototype.get_neuron_by = function(neuron_id) {
 
 function Neuron(network, options) {
   this.network = network;
-  this.initial_phase = options.initial_phase;
+  this.initial_phase = options.initial_phase ? options.initial_phase : Math.random();
   this.gamma = options.gamma;
   this.C = options.C;
 };
