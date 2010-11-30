@@ -493,7 +493,7 @@ PhaseDifferenceDiagramDrawer.prototype.redraw = function(network, current_time) 
                      this.canvas.width-(0.5*padding.horizontal),
                      (i)*2*padding.horizontal+padding.vertical,
                      {fillStyle: this.colors[(i-1)%this.colors.length]});
-                    this.canvas.text(network.neurons[i].id,
+    this.canvas.text(network.neurons[i].id,
                      this.canvas.width-(1.5*padding.horizontal),
                      (i-0.25)*2*padding.horizontal+padding.vertical,
                      {fillStyle: "black", textAlign: "center", font: "15px sans-serif"});
