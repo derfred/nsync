@@ -7,7 +7,7 @@ function merge(left, right) {
         right[k] = left[k];
       }
     }
-    return left;
+    return right;
   }
 }
 
@@ -77,7 +77,7 @@ Network.prototype.get_neuron_by = function(neuron_id) {
 
 function Neuron(network, options) {
   this.network = network;
-  this.initial_phase = options.initial_phase ? options.initial_phase : Math.random();
+  this.initial_phase = options.initial_phase != undefined ? options.initial_phase : Math.random();
   this.gamma = options.gamma;
   this.C = options.C;
 };

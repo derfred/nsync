@@ -73,14 +73,24 @@ asyncTest("time limited run should take about 1s", 2, function() {
     ok(true, "callback happened");
 
     var time_delta = (new Date()).getTime() - start_time;
-    ok(time_delta > 900 && time_delta < 1300, "time difference not within expected window: actual="+time_delta);
+    ok(time_delta > 700 && time_delta < 1300, "time difference not within expected window: actual="+time_delta);
   });
 
-  setTimeout(function() {  
-    start();  
-  }, 1500);  
+  setTimeout(function() {
+    start();
+  }, 1500);
 });
 
-test("simulating single neuron", function() {
-  
+asyncTest("simulating single neuron", 1, function() {
+  network = new Network();
+  var neuron = new Neuron(network, merge(Network.default_options, {
+    initial_phase: 0
+  }));
+  network.add_neuron(neuron);
+  simulator.initialize(network);
+
+  simulator.start(1.2, function() {
+    equals(network.neurons[0].last_reset, 1);
+    start();
+  });
 });
