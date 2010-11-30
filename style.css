@@ -1,0 +1,85 @@
+body {
+  font-family: sans-serif;
+  width: 950px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.section {
+  border: 1px solid #ccc;
+  padding: 5px;
+  float: left;
+  clear: both;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.section h2 {
+  margin: -5px;
+  margin-bottom: 5px;
+  padding: 5px;
+  background: #ccc;
+}
+
+.section p {
+  margin-top: 3px;
+  margin-bottom: 0;
+}
+
+p label {
+  float: left;
+  width: 250px;
+}
+
+#init_controls h3 {
+  margin-top: 15px;
+  margin-bottom: 5px;
+  padding: 5px;
+  background: #efefef;
+}
+
+#init_controls h3 a {
+  margin-right: 10px;
+}
+
+#initial_phase_holder {
+  padding: 5px;
+}
+
+#initial_phase_holder td.radio {
+  text-align: center;
+}
+
+#network_holder {s
+  position: relative;
+  clear: both;
+}
+
+#network {
+  float: left;
+}
+
+#graph_holder {
+  float: left;
+}
+
+#graph_holder ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#graph_holder ul li {
+  float: left;
+}
+
+#graph_holder ul li a {
+  display: block;
+  padding: 5px;
+  border-left: 1px solid black;
+}
+
+#graph_holder ul li.active a {
+  background: #ddd;
+}
+    
