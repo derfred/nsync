@@ -130,6 +130,30 @@ test("creating fully_connected network", function() {
 });
 
 
+module("Simulator with zero time_factor", {
+  setup: function() {
+    simulator = new Simulator(0);
+  }
+});
+
+asyncTest("simulating free dynamics of single neuron", 1, function() {
+  network = new Network();
+  var neuron = new Neuron(merge(Network.default_options, {
+    initial_phase: 0
+  }));
+  network.add_neuron(neuron);
+  simulator.initialize(network);
+
+  var start_time = (new Date()).getTime();
+  simulator.start(1.2, function() {
+    var time_delta = (new Date()).getTime() - start_time;
+    equals(network.neurons[0].last_reset, 1);
+    start();
+  });
+});
+
+
+
 module("Simulator with default time_factor", {
   setup: function() {
     simulator = new Simulator();
@@ -152,26 +176,4 @@ asyncTest("time limited run should take about 1s", 2, function() {
   setTimeout(function() {
     start();
   }, 1500);
-});
-
-module("Simulator with zero time_factor", {
-  setup: function() {
-    simulator = new Simulator(0);
-  }
-});
-
-asyncTest("simulating free dynamics of single neuron", 1, function() {
-  network = new Network();
-  var neuron = new Neuron(merge(Network.default_options, {
-    initial_phase: 0
-  }));
-  network.add_neuron(neuron);
-  simulator.initialize(network);
-
-  var start_time = (new Date()).getTime();
-  simulator.start(1.2, function() {
-    var time_delta = (new Date()).getTime() - start_time;
-    equals(network.neurons[0].last_reset, 1);
-    start();
-  });
 });
