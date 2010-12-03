@@ -54,15 +54,24 @@ test("finding an item by predicate", function() {
 });
 
 
-module("Neuron");
+module("Neuron", {
+  setup: function() {
+    neuron = new Neuron({ C: 1.04, gamma: 1 });
+  }
+});
 
 var neuron;
 
-test("initialize last_reset", function() {
-  neuron = new Neuron({ C: 1.04, gamma: 1 });
+test("initializing last_reset", function() {
   neuron.initial_phase = 0.5;
   neuron.initialize_last_reset(0);
   equals(neuron.last_reset, -0.5);
+});
+
+test("receiving reset sets phase to zero", function() {
+  neuron.reset(1.5);
+  equals(neuron.current_phase(1.5), 0);
+  equals(neuron.current_phase(2), 0.5);
 });
 
 
