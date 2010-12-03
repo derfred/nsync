@@ -31,6 +31,37 @@ p label {
   width: 250px;
 }
 
+#network_init ul {
+  margin: 0;
+  padding: 5;
+  width: 100%;
+  list-style: none;
+  float: left;
+  background: #ccc;
+}
+
+#network_init ul li {
+  float: left;
+  margin-right: 10px;
+}
+
+#network_init ul li a {
+  display: block;
+  text-decoration: none;
+  color: #888;
+  font-size: 1.25em;
+}
+
+#network_init ul li a.active {
+  font-weight: bold;
+  color: black;
+}
+
+#init_script textarea {
+  width: 100%;
+  height: 350px;
+}
+
 #init_controls h3 {
   margin-top: 15px;
   margin-bottom: 5px;
@@ -79,7 +110,7 @@ p label {
   border-left: 1px solid black;
 }
 
-#graph_holder ul li.active a {
+#graph_holder ul li a.active {
   background: #ddd;
 }
     

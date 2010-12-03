@@ -3,6 +3,8 @@
     <link rel="stylesheet" href="style.css" type="text/css" media="screen" charset="utf-8">
 
     <script src="external/raphael.js" type="text/javascript" charset="utf-8"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
+
     <script src="base.js" type="text/javascript" charset="utf-8"></script>
     <script src="ui.js" type="text/javascript" charset="utf-8"></script>
     <script type="text/javascript" charset="utf-8">
@@ -36,43 +38,30 @@
       }
 
       NetworkForm.update_initial_phases_form = function() {
-        $("initial_phase_holder").innerHTML = NetworkForm.build_initial_phases_form($F("init_n"));
-        $("randomize_phases").onclick = NetworkForm.update_initial_phases_form;
-
-        if(!$("toggle_initial_phase_holder").onclick) {
-          $("toggle_initial_phase_holder").onclick = function(e) {
-            if($("initial_phase_holder").style.display == "none") {
-              $("initial_phase_holder").style.display = "block";
-              e.currentTarget.innerHTML = "-";
-            } else {
-              $("initial_phase_holder").style.display = "none";
-              e.currentTarget.innerHTML = "+";
-            }
-            return false;
-          }
-        }
+        $("#initial_phase_holder").html(NetworkForm.build_initial_phases_form($F("#init_n")));
+        $("#randomize_phases").click(NetworkForm.update_initial_phases_form);
 
         return false;
       }
 
       NetworkForm.prototype.C = function() {
-        return $F("init_c");
+        return $F("#init_c");
       }
 
       NetworkForm.prototype.gamma = function() {
-        return $F("init_gamma");
+        return $F("#init_gamma");
       }
 
       NetworkForm.prototype.n = function() {
-        return $F("init_n");
+        return $F("#init_n");
       }
 
       NetworkForm.prototype.tau = function() {
-        return $F("init_tau");
+        return $F("#init_tau");
       }
 
       NetworkForm.prototype.epsilon = function() {
-        return $F("init_epsilon");
+        return $F("#init_epsilon");
       }
 
       NetworkForm.prototype.getCheckedValue = function(name) {
@@ -101,7 +90,7 @@
       NetworkForm.prototype.initial_phases = function() {
         var result = [];
         for(var i=0;i<this.n();i++) {
-          result.push($F("phase"+this.getCheckedValue("neuron"+i)));
+          result.push($F("#phase"+this.getCheckedValue("neuron"+i)));
         }
         return result;
       }
@@ -117,12 +106,41 @@
         });
       }
 
+      function register_tabs() {
+        $(".tab_holder").each(function() {
+          $(".tabs a", this).click(function(e) {
+            e.preventDefault();
+            $(".tabs a", $(this).closest(".tab_holder")).removeClass("active");
+            $(".tab_content", $(this).closest(".tab_holder")).hide();
+
+            $(this).addClass("active");
+            $($(this).attr("href")).show();
+          });
+        });
+      }
+
+      function register_toggler() {
+        $("a.toggler").click(function(e) {
+          e.preventDefault();
+          var target = $($(this).attr("href"));
+          if(target.is(":visible")) {
+            target.hide();
+            $(this).html("+");
+          } else {
+            target.show();
+            $(this).html("-");
+          }
+        });
+      }
 
       var simulator = false;
       var drawer = false;
       var network_form = false;
-      window.onload = function() {
-        $("init_controls").onsubmit = function() {
+      $(function() {
+        register_tabs();
+        register_toggler();
+
+        $("#init_params").submit(function() {
           if(simulator) {
             simulator.stop(function() {
               var network = generate_network();
@@ -131,7 +149,7 @@
             });
           }
           return false;
-        };
+        });
         network_form = new NetworkForm();
 
         var network = generate_network();
@@ -145,43 +163,56 @@
         });
 
         simulator.start();
-      }
+      });
     </script>
   </head>
   <body>
-    <form id="init_controls" class="section">
-      <h2>Network Parameters</h2>
-      <p><label>Driving Current (C)</label><input type="text" value="1.04" id="init_c"></p>
-      <p><label>Leak Constant (&gamma;)</label><input type="text" value="1.0" id="init_gamma"></p>
-      <p><label>Number of Neurons (N)</label><input type="text" value="5" id="init_n"></p>
-      <p><label>Connection Strength (&epsilon;)</label><input type="text" value="0.025" id="init_epsilon"></p>
-      <p><label>Signal delay (&tau;)</label><input type="text" value="0.31" id="init_tau"></p>
+    <div id="network_init" class="tab_holder">
+      <ul class="tabs">
+        <li><a href="#init_params" class="active">Generate Fully Connected Network</a></li>
+        <li><a href="#init_script">Initialization by Script</a></li>
+      </ul>
+      <form id="init_params" class="section tab_content">
+        <p><label>Driving Current (C)</label><input type="text" value="1.04" id="init_c"></p>
+        <p><label>Leak Constant (&gamma;)</label><input type="text" value="1.0" id="init_gamma"></p>
+        <p><label>Number of Neurons (N)</label><input type="text" value="5" id="init_n"></p>
+        <p><label>Connection Strength (&epsilon;)</label><input type="text" value="0.025" id="init_epsilon"></p>
+        <p><label>Signal delay (&tau;)</label><input type="text" value="0.31" id="init_tau"></p>
 
-      <h3><a href="#" id="toggle_initial_phase_holder" class="">+</a>Initial Phases</h3>
-      <div id="initial_phase_holder" style="display: none;">
+        <h3><a href="#initial_phase_holder" class="toggler">+</a>Initial Phases</h3>
+        <div id="initial_phase_holder" style="display: none;">
         
-      </div>
+        </div>
 
-      <input type="submit" value="Generate Network">
-    </form>
+        <input type="submit" value="Generate Network">
+      </form>
+      <form id="init_script" class="section tab_content" style="display: none;">
+        <p>
+          <label>Script</label><br>
+          <textarea id="init_scripttext"></textarea>
+        </p>
+        <input type="submit" value="Generate Network">
+      </form>
+    </div>
+    
     <div id="network_holder" class="section">
       <h2>Network</h2>
       <div id="network">
 
       </div>
-      <div id="graph_holder">
-        <ul>
-          <li><a href="#" id="phases_link" class="tab_switcher">Phases</a></li>
-          <li class="active"><a href="#" id="spikes_link" class="tab_switcher">Spikes</a></li>
-          <li><a href="#" id="phase_differences_link" class="tab_switcher">Phase Difference</a></li>
+      <div id="graph_holder" class="tab_holder">
+        <ul class="tabs">
+          <li><a href="#phases">Phases</a></li>
+          <li><a href="#spikes" class="active">Spikes</a></li>
+          <li><a href="#phase_differences">Phase Difference</a></li>
         </ul>
-        <div id="phases" class="tab" style="display: none;">
+        <div id="phases" class="tab_content" style="display: none;">
           <canvas id="phases_canvas" width="600" height="320"></canvas>
         </div>
-        <div id="spikes" class="tab">
+        <div id="spikes" class="tab_content">
           <canvas id="spikes_canvas" width="600" height="320"></canvas>
         </div>
-        <div id="phase_differences" class="tab" style="display: none;">
+        <div id="phase_differences" class="tab_content" style="display: none;">
           <canvas id="phase_differences_canvas" width="600" height="320"></canvas>
         </div>
       </div>

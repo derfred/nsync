@@ -32,16 +32,8 @@ Raphael.fn.arrow = function (x1, y1, x2, y2, size) {
   return this.path("M"+x1+" "+y1+" L"+x2+" "+y2+" M"+arm_one_x+" "+arm_one_y+" L"+x2+" "+y2+" L"+arm_two_x+" "+arm_two_y).attr("stroke-width", size);
 };
 
-function $(id) {
-  return document.getElementById(id);
-}
-
-function $$(klass_name) {
-  return document.getElementsByClassName(klass_name);
-}
-
 function $F(id) {
-  return parseFloat($(id).value);
+  return parseFloat($(id).val());
 }
 
 
@@ -606,7 +598,7 @@ Drawer.prototype.switch_tab = function(element) {
   };
   element.parentNode.className = "active";
 
-  tabs = $$("tab");
+  tabs = $(".tab");
   for (var j=0; j < tabs.length; j++) {
     tabs[j].style.display = "none";
   };
@@ -616,7 +608,7 @@ Drawer.prototype.switch_tab = function(element) {
 
 Drawer.prototype.register_tab_switcher = function() {
   drawer = this;
-  elements = $$("tab_switcher");
+  elements = $(".tab_switcher");
   for (var i=0; i < elements.length; i++) {
     elements[i].onclick = function(event) {
       drawer.switch_tab(event.currentTarget);
