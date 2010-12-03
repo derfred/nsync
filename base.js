@@ -50,7 +50,7 @@ Network.fully_connected = function(total, options) {
       initial_phase = options.initial_phases[i];
     }
 
-    var neuron = new Neuron(network, {
+    var neuron = new Neuron({
       C: options.C,
       gamma: options.gamma,
       initial_phase: initial_phase
@@ -71,6 +71,7 @@ Network.fully_connected = function(total, options) {
 
 Network.prototype.add_neuron = function(neuron) {
   neuron.id = this.neurons.length;
+  neuron.network = this;
   this.neurons.push(neuron);
 
   this.connections[neuron.id] = [];
@@ -94,8 +95,7 @@ export("Network", Network);
 
 
 
-function Neuron(network, options) {
-  this.network = network;
+function Neuron(options) {
   this.initial_phase = options.initial_phase != undefined ? options.initial_phase : Math.random();
   this.gamma = options.gamma;
   this.C = options.C;
@@ -340,11 +340,12 @@ Simulator.prototype.execute_event = function(evt) {
 Simulator.prototype.execute_timed = function(event, callback) {
   var self = this;
   this.next_event_time = event.time;
-
+  var w = this.wait_time(event);
+  console.log(w)
   setTimeout(function() {
     self.current_time = event.time;
     callback.apply(self, [event]);
-  }, this.wait_time(event));
+  }, w);
 }
 
 Simulator.prototype.wait_time = function(event) {

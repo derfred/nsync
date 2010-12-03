@@ -53,6 +53,9 @@ test("finding an item by predicate", function() {
   equals(evt3, evt_queue.pop_next_event(function(e) { return e.type == "age_check"; }));
 });
 
+module("Neuron");
+
+
 
 module("Network");
 
@@ -83,14 +86,15 @@ asyncTest("time limited run should take about 1s", 2, function() {
   var start_time = (new Date()).getTime();
   simulator.start(1, function() {
     ok(true, "callback happened");
-
+    
     var time_delta = (new Date()).getTime() - start_time;
     ok(time_delta > 900 && time_delta < 1500, "time difference not within expected window: actual="+time_delta);
+    console.log("hier2")
   });
-
+  
   setTimeout(function() {
     start();
-  }, 1500);
+  }, 5500);
 });
 
 module("Simulator with zero time_factor", {
@@ -101,7 +105,7 @@ module("Simulator with zero time_factor", {
 
 asyncTest("simulating free dynamics of single neuron", 1, function() {
   network = new Network();
-  var neuron = new Neuron(network, merge(Network.default_options, {
+  var neuron = new Neuron(merge(Network.default_options, {
     initial_phase: 0
   }));
   network.add_neuron(neuron);
