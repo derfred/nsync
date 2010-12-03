@@ -10,6 +10,14 @@ if(typeof window == "undefined") {
   var merge = base.merge;
 }
 
+function almost_equals(actual, expected, delta) {
+  if(!delta) {
+    delta = 0.0001;
+  }
+  QUnit.push(Math.abs(actual-expected) < delta, actual, expected);
+}
+
+
 module("Event Queue", {
   setup: function() {
     evt_queue = new EventQueue();
@@ -57,6 +65,7 @@ test("finding an item by predicate", function() {
 module("Neuron", {
   setup: function() {
     neuron = new Neuron({ C: 1.04, gamma: 1 });
+    neuron.reset(0);    // each test starts with zero phase
   }
 });
 
@@ -72,6 +81,37 @@ test("receiving reset sets phase to zero", function() {
   neuron.reset(1.5);
   equals(neuron.current_phase(1.5), 0);
   equals(neuron.current_phase(2), 0.5);
+});
+
+test("receiving spike will cause phase jump", function() {
+  neuron.receive_spike(0.5, 0.1);
+  almost_equals(neuron.current_phase(0.5), 0.6726059759638713);
+});
+
+test("receiving reset after spike will reset phase to zero", function() {
+  neuron.receive_spike(0.5, 0.1);
+  neuron.reset(0.8);
+  almost_equals(neuron.current_phase(1), 0.2);
+});
+
+test("receiving spike will not set phase beyond 1", function() {
+  neuron.receive_spike(0.9, 0.5);
+  almost_equals(neuron.current_phase(0.9), 0);
+  almost_equals(neuron.current_phase(1), 0.1);
+});
+
+test("receiving spike will not set phase below 0", function() {
+  neuron.receive_spike(0.1, -0.5);
+  almost_equals(neuron.current_phase(0.1), 0);
+  almost_equals(neuron.current_phase(0.2), 0.1);
+});
+
+test("receiving sub threshold spike will not signal reset", function() {
+  ok(!neuron.receive_spike(0.1, 0.1));
+});
+
+test("receiving supra threshold spike will signal reset", function() {
+  ok(neuron.receive_spike(0.9, 0.5));
 });
 
 

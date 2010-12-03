@@ -131,11 +131,11 @@ Neuron.prototype.post_synaptic_neurons = function() {
 
 Neuron.prototype.receive_spike = function(current_time, strength) {
   var new_phase = this.phase_jump(this.current_phase(current_time), strength);
-  if(new_phase > 1) {
+  if(isNaN(new_phase) || new_phase > 1) {
     this.last_reset = current_time;
     return true;
   } else {
-    this.last_spike = {time: current_time, phase: new_phase};
+    this.last_spike = {time: current_time, phase: Math.max(0, new_phase)};
     return false;
   }
 }
