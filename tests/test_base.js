@@ -28,6 +28,7 @@ var evt_queue;
 
 test("initialization", function() {
   ok(evt_queue.empty());
+  equals(evt_queue.find_next_event_index(), undefined);
 });
 
 test("adding an item", function() {
@@ -115,9 +116,19 @@ test("receiving supra threshold spike will signal reset", function() {
 });
 
 
-module("Network");
+module("Network", {
+  setup: function() {
+    network = new Network();
+  }
+});
 
 var network;
+
+test("adding new neuron", function() {
+  var n1 = network.add_new_neuron(Network.default_options);
+  equals(n1.constructor, Neuron);
+  equals(network.neurons.length, 1);
+});
 
 test("creating fully_connected network", function() {
   network = Network.fully_connected(10);
@@ -133,21 +144,55 @@ test("creating fully_connected network", function() {
 module("Simulator with zero time_factor", {
   setup: function() {
     simulator = new Simulator(0);
+    simulator.save_events = true;
   }
 });
 
-asyncTest("simulating free dynamics of single neuron", 1, function() {
+asyncTest("simulating free dynamics of single neuron", 2, function() {
   network = new Network();
-  var neuron = new Neuron(merge(Network.default_options, {
+  network.add_new_neuron(merge(Network.default_options, {
     initial_phase: 0
   }));
-  network.add_neuron(neuron);
   simulator.initialize(network);
 
-  var start_time = (new Date()).getTime();
   simulator.start(1.2, function() {
-    var time_delta = (new Date()).getTime() - start_time;
     equals(network.neurons[0].last_reset, 1);
+    equals(simulator.past_events.length, 3);
+    start();
+  });
+});
+
+asyncTest("simulating dynamics of single transmitted spike", function() {
+  network = new Network();
+  var n1 = network.add_new_neuron({ C: 1.04, gamma: 1, initial_phase: 0.9 });
+  var n2 = network.add_new_neuron({ C: 1.04, gamma: 1, initial_phase: 0 });
+
+  network.connect(n1, n2, 0.3, 0.1);
+
+  simulator.initialize(network);
+  simulator.start(0.5, function() {
+    equals(network.neurons[0].current_phase(0.5), 0.4);
+    almost_equals(network.neurons[1].current_phase(0.5), 0.6548363777407726);
+    almost_equals(network.neurons[1].last_spike.time, 0.4);
+    equals(simulator.past_events.length, 4);
+    start();
+  });
+});
+
+asyncTest("simulating dynamics of two consequtive spikes sent to one neuron", function() {
+  network = new Network();
+  var n1 = network.add_new_neuron({ C: 1.04, gamma: 1, initial_phase: 0.9 });
+  var n2 = network.add_new_neuron({ C: 1.04, gamma: 1, initial_phase: 0 });
+
+  network.connect(n1, n2, 0.3, 0.2);
+
+  simulator.initialize(network);
+  simulator.start(1.5, function() {
+    almost_equals(network.neurons[0].current_phase(1.5), 0.4);
+    almost_equals(network.neurons[1].current_phase(1.5), 0.1);
+    almost_equals(network.neurons[1].last_reset, 1.4)
+    equals(simulator.past_events.length, 7);
+    console.log(simulator.past_events)
     start();
   });
 });

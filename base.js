@@ -69,6 +69,12 @@ Network.fully_connected = function(total, options) {
   return network;
 }
 
+Network.prototype.add_new_neuron = function(options) {
+  var neuron = new Neuron(options);
+  this.add_neuron(neuron);
+  return neuron;
+}
+
 Network.prototype.add_neuron = function(neuron) {
   neuron.id = this.neurons.length;
   neuron.network = this;
@@ -253,6 +259,7 @@ Simulator.prototype.initialize = function(network, drawer) {
 
   this.current_time = 0.0;
   this.event_queue.clear();
+  this.past_events = [];
 
   if(this.drawer) {
     this.drawer.reset();
@@ -307,7 +314,7 @@ Simulator.prototype.event_spike = function(event) {
   var reset_event_index = this.event_queue.find_next_event_index(function(evt) {
     return evt.type == "reset" && evt.options.recipient == event.options.recipient;
   });
-  if(reset_event_index) {
+  if(reset_event_index != undefined) {
     this.event_queue.remove_indexed_event(reset_event_index);
   }
 
@@ -332,6 +339,10 @@ Simulator.prototype.event_stop = function(event) {
 Simulator.prototype.execute_event = function(evt) {
   // this slows the simulation so that it is observable
   this.execute_timed(evt, function(event) {
+    if(this.save_events) {
+      this.past_events.push(event);
+    }
+
     this["event_"+event.type](event);
 
     var event = this.event_queue.pop_next_event();
