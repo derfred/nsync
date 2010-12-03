@@ -596,28 +596,11 @@ Drawer.prototype.neuron_click = function(callback) {
   this.network_drawer.neuron_click(callback);
 }
 
-Drawer.prototype.switch_tab = function(element) {
-  for (var j=0; j < element.parentNode.parentNode.children.length; j++) {
-    element.parentNode.parentNode.children[j].className = "";
-  };
-  element.parentNode.className = "active";
-
-  tabs = $(".tab");
-  for (var j=0; j < tabs.length; j++) {
-    tabs[j].style.display = "none";
-  };
-  this.current_tab = element.id.replace("_link", "");
-  $(this.current_tab).style.display = "block";
-}
-
 Drawer.prototype.register_tab_switcher = function() {
   drawer = this;
-  elements = $(".tab_switcher");
-  for (var i=0; i < elements.length; i++) {
-    elements[i].onclick = function(event) {
-      drawer.switch_tab(event.currentTarget);
-      return false;
-    }
-  };
+  $("#graph_holder .tabs a").click(function(e) {
+    e.preventDefault();
+    drawer.current_tab = $(this).attr("href").replace("#", "");
+  });
   this.current_tab = "spikes";
 }
