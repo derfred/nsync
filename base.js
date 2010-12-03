@@ -243,7 +243,7 @@ export("EventQueue", EventQueue);
 function Simulator(time_factor) {
   this.event_queue = new EventQueue();
 
-  this.time_factor = time_factor != undefined ? time_factor : 5000;
+  this.time_factor = time_factor != undefined ? time_factor : 1000;
   this.redraw_interval = 0.01;
 }
 
