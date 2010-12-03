@@ -168,7 +168,11 @@ function Event(time, type, options) {
 }
 
 Event.prototype.toString = function() {
-  return "time: " + this.time + " type: " + this.type;
+  var result = "type: " + this.type + "\ttime: " + this.time;
+  if(this.options.recipient) {
+    result += ("\trecipient: " + this.options.recipient.id);
+  }
+  return result;
 }
 
 export("Event", Event);
@@ -239,7 +243,7 @@ export("EventQueue", EventQueue);
 function Simulator(time_factor) {
   this.event_queue = new EventQueue();
 
-  this.time_factor = time_factor != undefined ? time_factor : 1000;
+  this.time_factor = time_factor != undefined ? time_factor : 5000;
   this.redraw_interval = 0.01;
 }
 
@@ -306,7 +310,7 @@ Simulator.prototype.event_spike = function(event) {
   if(reset_event_index) {
     this.event_queue.remove_indexed_event(reset_event_index);
   }
-  
+
   // because of rounding errors the effect of a spike causing a reset needs to be handled explicitly
   var fired = event.options.recipient.receive_spike(this.current_time, event.options.strength);
   if(fired) {
