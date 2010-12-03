@@ -514,6 +514,10 @@ PhaseDifferenceDiagramDrawer.prototype.redraw = function(network, current_time) 
 }
 
 PhaseDifferenceDiagramDrawer.prototype.update = function(network, current_time) {
+  if(network.neurons.length == 0) {
+    return;
+  }
+
   var reference = network.neurons[0].current_phase(current_time);
   for (var i=1; i < network.neurons.length; i++) {
     var phase_delta = Math.abs(reference - network.neurons[i].current_phase(current_time));
