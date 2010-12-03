@@ -10,6 +10,7 @@
     <script type="text/javascript" charset="utf-8">
       function NetworkForm() {
         NetworkForm.update_initial_phases_form();
+        NetworkForm.register_generator_forms();
       }
 
       NetworkForm.build_initial_phases_form = function(total) {
@@ -42,6 +43,30 @@
         $("#randomize_phases").click(NetworkForm.update_initial_phases_form);
 
         return false;
+      }
+
+      NetworkForm.register_generator_forms = function() {
+        $("#init_params").submit(function() {
+          if(simulator) {
+            simulator.stop(function() {
+              var network = generate_network_from_params();
+              simulator.initialize(network, drawer);
+              simulator.start();
+            });
+          }
+          return false;
+        });
+
+        $("#init_script").submit(function() {
+          if(simulator) {
+            simulator.stop(function() {
+              var network = generate_network_from_script();
+              simulator.initialize(network, drawer);
+              simulator.start();
+            });
+          }
+          return false;
+        });
       }
 
       NetworkForm.prototype.C = function() {
@@ -96,7 +121,7 @@
       }
 
 
-      function generate_network() {
+      function generate_network_from_params() {
         return Network.fully_connected(network_form.n(), {
           delay: network_form.tau(),
           strength: network_form.epsilon(),
@@ -104,6 +129,18 @@
           gamma: network_form.gamma(),
           initial_phases: network_form.initial_phases()
         });
+      }
+
+      function generate_network_from_script() {
+        var network = new Network();
+
+        eval($("#init_scripttext").val());
+
+        if(network.neurons.length == 0) {
+          alert("This network has no neurons");
+        }
+
+        return network;
       }
 
       function register_tabs() {
@@ -136,23 +173,15 @@
       var simulator = false;
       var drawer = false;
       var network_form = false;
+
+      // on load callback
       $(function() {
         register_tabs();
         register_toggler();
 
-        $("#init_params").submit(function() {
-          if(simulator) {
-            simulator.stop(function() {
-              var network = generate_network();
-              simulator.initialize(network, drawer);
-              simulator.start();
-            });
-          }
-          return false;
-        });
         network_form = new NetworkForm();
 
-        var network = generate_network();
+        var network = generate_network_from_params();
         var drawer = new Drawer();
 
         simulator = new Simulator();
@@ -189,7 +218,26 @@
       <form id="init_script" class="section tab_content" style="display: none;">
         <p>
           <label>Script</label><br>
-          <textarea id="init_scripttext"></textarea>
+          <textarea id="init_scripttext">
+/*
+**  Code to create a fully connected network with default options
+**    network (lower case) is an existing variable where all neurons need to be added to
+**
+var options = Network.default_options;
+var total = 5;
+for (var i=0; i < total; i++) {
+  network.add_neuron(new Neuron(network, options));
+};
+
+for (var i=0; i < network.neurons.length; i++) {
+  for (var j=0; j < network.neurons.length; j++) {
+    if (j != i) {
+      network.connect(network.neurons[i], network.neurons[j], options.delay, options.strength);
+    }
+  };
+};
+*/
+</textarea>
         </p>
         <input type="submit" value="Generate Network">
       </form>
