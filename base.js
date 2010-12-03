@@ -340,12 +340,10 @@ Simulator.prototype.execute_event = function(evt) {
 Simulator.prototype.execute_timed = function(event, callback) {
   var self = this;
   this.next_event_time = event.time;
-  var w = this.wait_time(event);
-  console.log(w)
   setTimeout(function() {
     self.current_time = event.time;
     callback.apply(self, [event]);
-  }, w);
+  }, this.wait_time(event));
 }
 
 Simulator.prototype.wait_time = function(event) {

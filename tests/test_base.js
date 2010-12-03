@@ -26,7 +26,7 @@ test("adding an item", function() {
   var event = new Event(1, "mike_check");
   evt_queue.add_event(event);
   ok(!evt_queue.empty());
-  equals(event, evt_queue.pop_next_event());
+  equals(evt_queue.pop_next_event(), event);
 });
 
 test("popping an item", function() {
@@ -38,7 +38,7 @@ test("popping an item", function() {
 test("time ordering of items", function() {
   evt_queue.add_event(new Event(1.5, "mike_check"));
   evt_queue.add_event(new Event(1, "feedback_cancel"));
-  equals(1, evt_queue.pop_next_event().time);
+  equals(evt_queue.pop_next_event().time, 1);
 });
 
 test("finding an item by predicate", function() {
@@ -50,11 +50,20 @@ test("finding an item by predicate", function() {
   evt_queue.add_event(evt2);
   evt_queue.add_event(evt3);
 
-  equals(evt3, evt_queue.pop_next_event(function(e) { return e.type == "age_check"; }));
+  equals(evt_queue.pop_next_event(function(e) { return e.type == "age_check"; }), evt3);
 });
+
 
 module("Neuron");
 
+var neuron;
+
+test("initialize last_reset", function() {
+  neuron = new Neuron({ C: 1.04, gamma: 1 });
+  neuron.initial_phase = 0.5;
+  neuron.initialize_last_reset(0);
+  equals(neuron.last_reset, -0.5);
+});
 
 
 module("Network");
@@ -89,12 +98,11 @@ asyncTest("time limited run should take about 1s", 2, function() {
     
     var time_delta = (new Date()).getTime() - start_time;
     ok(time_delta > 900 && time_delta < 1500, "time difference not within expected window: actual="+time_delta);
-    console.log("hier2")
   });
   
   setTimeout(function() {
     start();
-  }, 5500);
+  }, 1500);
 });
 
 module("Simulator with zero time_factor", {
