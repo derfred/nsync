@@ -1,3 +1,15 @@
+if(typeof window == "undefined") {
+  module = QUnit.module;
+
+  function log(msg) {
+    require("util").log(msg);
+  }
+
+  var base = require("../base.js");
+  var EventQueue = base.EventQueue;
+  var merge = base.merge;
+}
+
 module("Event Queue", {
   setup: function() {
     evt_queue = new EventQueue();

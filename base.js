@@ -1,3 +1,17 @@
+function export(name, type) {
+  if(typeof(exports) != "undefined") {
+    exports[name] = type;
+  }
+}
+
+function log(msg) {
+  if(typeof(require) != "undefined") {
+    require("util").log(msg);
+  } else {
+    
+  }
+}
+
 function merge(left, right) {
   if(!right) {
     return left;
@@ -10,6 +24,9 @@ function merge(left, right) {
     return right;
   }
 }
+
+export("merge", merge);
+
 
 function Network() {
   this.neurons = [];
@@ -73,6 +90,8 @@ Network.prototype.get_neuron_by = function(neuron_id) {
   })[0];
 }
 
+export("Network", Network);
+
 
 
 function Neuron(network, options) {
@@ -133,6 +152,8 @@ Neuron.prototype.g = function(x, options) {
   return (1/this.gamma) * Math.log(this.C/(this.C-x));
 }
 
+export("Neuron", Neuron);
+
 
 
 function Event(time, type, options) {
@@ -150,6 +171,7 @@ Event.prototype.toString = function() {
   return "time: " + this.time + " type: " + this.type;
 }
 
+export("Event", Event);
 
 
 function EventQueue() {
@@ -209,6 +231,8 @@ EventQueue.prototype.dump_queue = function() {
   }
   return result;
 }
+
+export("EventQueue", EventQueue);
 
 
 
@@ -350,3 +374,5 @@ Simulator.prototype.perturb_neuron = function(neuron_id, strength) {
   var neuron = this.network.get_neuron_by(neuron_id);
   this.event_queue.add_event(new Event(this.next_event_time, "spike", {recipient: neuron, strength: strength}))
 }
+
+export("Simulator", Simulator);
