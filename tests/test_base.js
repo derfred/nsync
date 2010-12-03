@@ -158,6 +158,7 @@ asyncTest("simulating free dynamics of single neuron", 2, function() {
   simulator.start(1.2, function() {
     equals(network.neurons[0].last_reset, 1);
     equals(simulator.past_events.length, 3);
+
     start();
   });
 });
@@ -175,6 +176,7 @@ asyncTest("simulating dynamics of single transmitted spike", function() {
     almost_equals(network.neurons[1].current_phase(0.5), 0.6548363777407726);
     almost_equals(network.neurons[1].last_spike.time, 0.4);
     equals(simulator.past_events.length, 4);
+
     start();
   });
 });
@@ -192,7 +194,7 @@ asyncTest("simulating dynamics of two consequtive spikes sent to one neuron", fu
     almost_equals(network.neurons[1].current_phase(1.5), 0.1);
     almost_equals(network.neurons[1].last_reset, 1.4)
     equals(simulator.past_events.length, 7);
-    console.log(simulator.past_events)
+
     start();
   });
 });
