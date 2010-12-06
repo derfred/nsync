@@ -67,9 +67,10 @@ Canvas.prototype.draw_racetrack_coordinate_system = function(network) {
   this.arrow(padding.horizontal, this.height-padding.vertical, padding.horizontal, padding.vertical, {lineWidth: stroke_width});
   this.arrow(padding.horizontal, this.height-padding.vertical, this.width-padding.horizontal, this.height-padding.vertical, {lineWidth: stroke_width});
 
-  var spacing = (this.height - 2*padding.vertical)/network.neurons.length;
-  for (var i=0; i < network.neurons.length; i++) {
-    this.ctx.strokeText(network.neurons[i].id, padding.horizontal*0.35, (padding.vertical+(i+0.5)*spacing));
+  var total = network.number_of_neurons();
+  var spacing = (this.height - 2*padding.vertical)/total;
+  network.each_neuron(function(neuron, i) {
+    this.ctx.strokeText(neuron.id, padding.horizontal*0.35, (padding.vertical+(i+0.5)*spacing));
 
     // baseline for every neuron
     this.line(padding.horizontal, padding.vertical+(i+1)*spacing,
@@ -80,7 +81,7 @@ Canvas.prototype.draw_racetrack_coordinate_system = function(network) {
     this.line(padding.horizontal*0.5, padding.vertical+(i+1)*spacing,
               padding.horizontal, padding.vertical+(i+1)*spacing,
               {lineWidth: stroke_width});
-  };
+  }.bind(this));
 
   // this is the "now" line
   this.line(this.width-2*padding.horizontal, padding.vertical,
@@ -107,7 +108,7 @@ Canvas.prototype.line = function(x1, y1, x2, y2, options) {
   this.ctx.beginPath();
 
   this.set_options(options);
-
+  
   this.ctx.moveTo(x1, y1);
   this.ctx.lineTo(x2, y2);
 
@@ -345,27 +346,27 @@ PhaseDiagramDrawer.prototype.calc_unit_time_width = function(padding) {
 PhaseDiagramDrawer.prototype.draw = function(network) {
   this.clear(network);
 
-  for (var i=0; i < network.neurons.length; i++) {
-    this.phase_data[network.neurons[i].id] = [];
-  };
+  network.each_neuron(function(neuron) {
+    this.phase_data[neuron.id] = [];
+  }.bind(this));
 }
 
 PhaseDiagramDrawer.prototype.update = function(network, current_time) {
-  for (var i=0; i < network.neurons.length; i++) {
-    this.write_phase(network.neurons[i].id, current_time, network.neurons[i].current_phase(current_time));
-  };
+  network.each_neuron(function(neuron) {
+    this.write_phase(neuron.id, current_time, neuron.current_phase(current_time));
+  }.bind(this));
 }
 
 PhaseDiagramDrawer.prototype.redraw = function(network, current_time) {
   this.clear(network);
 
   var padding = this.canvas.padding();
-  var spacing = (this.canvas.height - 2*padding.vertical)/network.neurons.length;
+  var spacing = (this.canvas.height - 2*padding.vertical)/network.number_of_neurons();
 
   var time_width = this.calc_unit_time_width(padding);
   var now = this.canvas.width-2*padding.horizontal;
 
-  var coords_for = function(data_point) {
+  var coords_for = function(data_point, i) {
     return {
       x: now-((current_time-data_point.time)*time_width),
       y: padding.vertical+(i+1-data_point.phase)*spacing
@@ -374,20 +375,20 @@ PhaseDiagramDrawer.prototype.redraw = function(network, current_time) {
 
   this.canvas.ctx.save();
 
-  for (var i=0; i < network.neurons.length; i++) {
-    var phase_data = this.phase_data[network.neurons[i].id];
+  network.each_neuron(function(neuron, i) {
+    var phase_data = this.phase_data[neuron.id];
     if(phase_data.length > 0) {
-      var initial = coords_for(phase_data[phase_data.length-1])
+      var initial = coords_for(phase_data[phase_data.length-1], i);
       this.canvas.ctx.moveTo(initial.x, initial.y);
 
       for(var j=phase_data.length-2; j >= 0; j--) {
-        var coords = coords_for(phase_data[j]);
+        var coords = coords_for(phase_data[j], i);
         if(coords.x > padding.horizontal) {
           this.canvas.ctx.lineTo(coords.x, coords.y);
         }
       }
     }
-  }
+  }.bind(this));
 
   this.canvas.ctx.stroke();
   this.canvas.ctx.restore();
@@ -431,9 +432,9 @@ SpikeDiagramDrawer.prototype.clear = function(network) {
 SpikeDiagramDrawer.prototype.draw = function(network) {
   this.clear(network);
 
-  for (var i=0; i < network.neurons.length; i++) {
-    this.spike_data[network.neurons[i].id] = [];
-  };
+  network.each_neuron(function(neuron) {
+    this.spike_data[neuron.id] = [];
+  }.bind(this));
 }
 
 SpikeDiagramDrawer.prototype.calc_unit_time_width = function(padding) {
@@ -448,13 +449,13 @@ SpikeDiagramDrawer.prototype.redraw = function(network, current_time) {
   this.clear(network);
 
   var padding = this.canvas.padding();
-  var spacing = (this.canvas.height - 2*padding.vertical)/network.neurons.length;
+  var spacing = (this.canvas.height - 2*padding.vertical)/network.number_of_neurons();
 
   var time_width = this.calc_unit_time_width(padding);
   var now = this.canvas.width-2*padding.horizontal;
 
-  for (var i=0; i < network.neurons.length; i++) {
-    var spike_data = this.spike_data[network.neurons[i].id];
+  network.each_neuron(function(neuron, i) {
+    var spike_data = this.spike_data[neuron.id];
     for (var j=0; j < spike_data.length; j++) {
       var data_point = spike_data[j];
       var x = now-((current_time-data_point)*time_width);
@@ -463,7 +464,7 @@ SpikeDiagramDrawer.prototype.redraw = function(network, current_time) {
                          x, padding.vertical+(i+0.9)*spacing);
       }
     }
-  }
+  }.bind(this));
 }
 
 SpikeDiagramDrawer.prototype.neuron_fired = function(neuron, current_time) {

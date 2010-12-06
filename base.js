@@ -113,7 +113,11 @@ Network.prototype.add_sub_network = function(sub_network) {
 }
 
 Network.prototype.all_networks = function() {
-  return [this].concat(this.sub_networks);
+  if(this.has_sub_networks()) {
+    return this.sub_networks;
+  } else {
+    return [this];
+  }
 }
 
 Network.prototype.new_neuron = function(options) {
@@ -148,15 +152,19 @@ Network.prototype.all_neurons = function() {
   return result;
 }
 
-Network.prototype.each_neuron = function(callback) {
+Network.prototype.each_neuron = function(callback, base) {
+  base = base == undefined ? 0 : base
   if(this.has_sub_networks()) {
+    var count = 0;
     for(var i=0;i<this.sub_networks.length;i++) {
-      this.sub_networks[i].each_neuron(callback);
+      count += this.sub_networks[i].each_neuron(callback, base+count);
     }
+    return count;
   } else {
     for(var i=0;i<this.neurons.length;i++) {
-      callback(this.neurons[i]);
+      callback(this.neurons[i], base+i);
     }
+    return this.neurons.length;
   }
 }
 

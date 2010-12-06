@@ -231,9 +231,8 @@ test("collecting all networks", function() {
   var net2 = network.new_sub_network();
 
   var result = network.all_networks();
-  equals(result[0], network);
-  equals(result[1], net1);
-  equals(result[2], net2);
+  equals(result[0], net1);
+  equals(result[1], net2);
 });
 
 
