@@ -28,9 +28,9 @@ function merge(left, right) {
 export("merge", merge);
 
 
-function Network() {
+function Network(prefix) {
   this.neurons = [];
-  this.connections = {};
+  this.prefix = prefix;
 }
 
 Network.default_options = {
@@ -61,7 +61,7 @@ Network.fully_connected = function(total, options) {
   for (var i=0; i < network.neurons.length; i++) {
     for (var j=0; j < network.neurons.length; j++) {
       if (j != i) {
-        network.connect(network.neurons[i], network.neurons[j], options.delay, options.strength);
+        network.neurons[i].connect(network.neurons[j], options.delay, options.strength);
       }
     };
   };
@@ -79,8 +79,6 @@ Network.prototype.add_neuron = function(neuron) {
   neuron.id = this.neurons.length;
   neuron.network = this;
   this.neurons.push(neuron);
-
-  this.connections[neuron.id] = [];
 };
 
 Network.prototype.connect = function(pre_synaptic, post_synaptic, delay, strength) {
@@ -105,6 +103,7 @@ function Neuron(options) {
   this.initial_phase = options.initial_phase != undefined ? options.initial_phase : Math.random();
   this.gamma = options.gamma;
   this.C = options.C;
+  this.connections = [];
 };
 
 Neuron.prototype.initialize = function(current_time) {
@@ -127,8 +126,12 @@ Neuron.prototype.set_phase = function(current_time, phase) {
   this.last_spike = {time: current_time, phase: Math.max(0, phase)};
 }
 
-Neuron.prototype.post_synaptic_neurons = function() {
-  return this.network.connections[this.id];
+Neuron.prototype.connect = function(post_synaptic, delay, strength) {
+  this.connections.push({
+    neuron: post_synaptic,
+    delay: delay,
+    strength: strength
+  });
 }
 
 Neuron.prototype.receive_spike = function(current_time, strength) {
@@ -281,12 +284,11 @@ Simulator.prototype.neuron_reset = function(neuron) {
   var next_reset = neuron.next_reset(this.current_time);
   this.event_queue.add_event(new Event(next_reset, "reset", {recipient: neuron}));
 
-  var post_synaptic_neurons = neuron.post_synaptic_neurons();
-  for (var i=0; i < post_synaptic_neurons.length; i++) {
-    this.event_queue.add_event(new Event(this.current_time+post_synaptic_neurons[i].delay, "spike", {
+  for (var i=0; i < neuron.connections.length; i++) {
+    this.event_queue.add_event(new Event(this.current_time+neuron.connections[i].delay, "spike", {
       sender: neuron,
-      recipient: post_synaptic_neurons[i].neuron,
-      strength: post_synaptic_neurons[i].strength
+      recipient: neuron.connections[i].neuron,
+      strength: neuron.connections[i].strength
     }));
   }
 }

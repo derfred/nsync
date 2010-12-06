@@ -123,6 +123,13 @@ test("receiving supra threshold spike will signal reset", function() {
   ok(neuron.receive_spike(0.9, 0.5));
 });
 
+test("connecting to other neurons", function() {
+  var n2 = new Neuron({ C: 1.04, gamma: 1 });
+  neuron.connect(n2, 0.3, 0.4);
+  equals(neuron.connections.length, 1);
+  equals(neuron.connections[0].neuron, n2);
+});
+
 
 module("Network", {
   setup: function() {
@@ -144,7 +151,7 @@ test("creating fully_connected network", function() {
   equals(10, network.neurons.length);
 
   for(var i=0;i<network.neurons.length;i++) {
-    equals(9, network.neurons[i].post_synaptic_neurons().length);
+    equals(9, network.neurons[i].connections.length);
   }
 });
 
@@ -176,7 +183,7 @@ asyncTest("simulating dynamics of single transmitted spike", function() {
   var n1 = network.add_new_neuron({ C: 1.04, gamma: 1, initial_phase: 0.9 });
   var n2 = network.add_new_neuron({ C: 1.04, gamma: 1, initial_phase: 0 });
 
-  network.connect(n1, n2, 0.3, 0.1);
+  n1.connect(n2, 0.3, 0.1);
 
   simulator.initialize(network);
   simulator.start(0.5, function() {
@@ -194,7 +201,7 @@ asyncTest("simulating dynamics of two consequtive spikes sent to one neuron", fu
   var n1 = network.add_new_neuron({ C: 1.04, gamma: 1, initial_phase: 0.9 });
   var n2 = network.add_new_neuron({ C: 1.04, gamma: 1, initial_phase: 0 });
 
-  network.connect(n1, n2, 0.3, 0.2);
+  n1.connect(n2, 0.3, 0.2);
 
   simulator.initialize(network);
   simulator.start(1.5, function() {
