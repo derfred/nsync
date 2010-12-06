@@ -112,6 +112,10 @@ Network.prototype.add_sub_network = function(sub_network) {
   return sub_network;
 }
 
+Network.prototype.all_networks = function() {
+  return [this].concat(this.sub_networks);
+}
+
 Network.prototype.new_neuron = function(options) {
   var neuron = new Neuron(options);
   return this.add_neuron(neuron);

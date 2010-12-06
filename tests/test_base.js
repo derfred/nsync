@@ -226,6 +226,16 @@ test("collecting all neurons", function() {
   equals(result[1].id, n2.id);
 });
 
+test("collecting all networks", function() {
+  var net1 = network.new_sub_network();
+  var net2 = network.new_sub_network();
+
+  var result = network.all_networks();
+  equals(result[0], network);
+  equals(result[1], net1);
+  equals(result[2], net2);
+});
+
 
 module("Simulator with zero time_factor", {
   setup: function() {
