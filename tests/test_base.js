@@ -72,10 +72,10 @@ module("Neuron", {
 
 var neuron;
 
-test("initializing last_reset", function() {
+test("initializing", function() {
   neuron.initial_phase = 0.5;
-  neuron.initialize_last_reset(0);
-  equals(neuron.last_reset, -0.5);
+  neuron.initialize(0);
+  equals(neuron.current_phase(0), 0.5);
 });
 
 test("receiving reset sets phase to zero", function() {
@@ -156,8 +156,8 @@ asyncTest("simulating free dynamics of single neuron", 2, function() {
   simulator.initialize(network);
 
   simulator.start(1.2, function() {
-    equals(network.neurons[0].last_reset, 1);
-    equals(simulator.past_events.length, 3);
+    almost_equals(network.neurons[0].current_phase(1.2), 0.2);
+    equals(simulator.past_events.length, 2);
 
     start();
   });
@@ -175,7 +175,7 @@ asyncTest("simulating dynamics of single transmitted spike", function() {
     equals(network.neurons[0].current_phase(0.5), 0.4);
     almost_equals(network.neurons[1].current_phase(0.5), 0.6548363777407726);
     almost_equals(network.neurons[1].last_spike.time, 0.4);
-    equals(simulator.past_events.length, 4);
+    equals(simulator.past_events.length, 3);
 
     start();
   });
@@ -192,8 +192,8 @@ asyncTest("simulating dynamics of two consequtive spikes sent to one neuron", fu
   simulator.start(1.5, function() {
     almost_equals(network.neurons[0].current_phase(1.5), 0.4);
     almost_equals(network.neurons[1].current_phase(1.5), 0.1);
-    almost_equals(network.neurons[1].last_reset, 1.4)
-    equals(simulator.past_events.length, 7);
+    almost_equals(network.neurons[1].last_spike.time, 1.4);
+    equals(simulator.past_events.length, 6);
 
     start();
   });

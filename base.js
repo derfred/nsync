@@ -107,28 +107,24 @@ function Neuron(options) {
   this.C = options.C;
 };
 
-Neuron.prototype.initialize_last_reset = function(current_time) {
-  this.last_reset = current_time + Math.ceil(this.initial_phase) - this.initial_phase - 1;
+Neuron.prototype.initialize = function(current_time) {
+  this.set_phase(current_time, this.initial_phase);
 }
 
 Neuron.prototype.reset = function(current_time) {
-  this.last_reset = current_time;
+  this.set_phase(current_time, 0);
 }
 
 Neuron.prototype.next_reset = function(current_time) {
-  if(this.last_spike && this.last_spike.time > this.last_reset) {
-    return current_time + 1 - this.last_spike.phase;
-  } else {
-    return this.last_reset + 1;
-  }
+  return current_time + 1 - this.current_phase(current_time);
 }
 
 Neuron.prototype.current_phase = function(current_time) {
-  if(this.last_spike && (this.last_spike.time > this.last_reset)) {
-    return current_time - this.last_spike.time + this.last_spike.phase;
-  } else {
-    return current_time - this.last_reset;
-  }
+  return current_time - this.last_spike.time + this.last_spike.phase;
+}
+
+Neuron.prototype.set_phase = function(current_time, phase) {
+  this.last_spike = {time: current_time, phase: Math.max(0, phase)};
 }
 
 Neuron.prototype.post_synaptic_neurons = function() {
@@ -138,10 +134,10 @@ Neuron.prototype.post_synaptic_neurons = function() {
 Neuron.prototype.receive_spike = function(current_time, strength) {
   var new_phase = this.phase_jump(this.current_phase(current_time), strength);
   if(isNaN(new_phase) || new_phase > 1) {
-    this.last_reset = current_time;
+    this.set_phase(current_time, 0);
     return true;
   } else {
-    this.last_spike = {time: current_time, phase: Math.max(0, new_phase)};
+    this.set_phase(current_time, Math.max(0, new_phase));
     return false;
   }
 }
@@ -268,7 +264,7 @@ Simulator.prototype.initialize = function(network, drawer) {
 
   for (var i=0; i < this.network.neurons.length; i++) {
     var neuron = this.network.neurons[i];
-    neuron.initialize_last_reset(this.current_time);
+    neuron.initialize(this.current_time);
     this.event_queue.add_event(new Event(neuron.next_reset(this.current_time), "reset", {recipient: neuron}));
   };
 
