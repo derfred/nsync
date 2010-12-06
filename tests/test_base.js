@@ -142,7 +142,14 @@ var network;
 test("adding new neuron", function() {
   var n1 = network.new_neuron(Network.default_options);
   equals(n1.constructor, Neuron);
+  equals(n1.id, "0");
   equals(network.neurons.length, 1);
+});
+
+test("adding a neuron to a network with prefix", function() {
+  network = new Network("a");
+  var n1 = network.new_neuron(Network.default_options);
+  equals(n1.id, "a0");
 });
 
 test("creating fully_connected network", function() {
