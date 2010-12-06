@@ -177,16 +177,16 @@ NetworkDrawer.prototype.reset = function() {
   this.neuron_locations = {};
 }
 
-NetworkDrawer.prototype.location_for = function(length, index) {
-  var angle = index/length * 2 * Math.PI;
-  var x = Math.sin(angle) * (this.paper.width*0.9)/2 +  this.paper.width/2;
-  var y = (-Math.cos(angle)) * (this.paper.height*0.9)/2 + this.paper.height/2;
-  return {x: x, y:y};
+NetworkDrawer.prototype.set_location_for = function(neuron, index, total, box) {
+  var angle = index/total * 2 * Math.PI;
+  var x = box.x + Math.sin(angle)    * (box.w*0.9)/2 + box.w/2;
+  var y = box.y + (-Math.cos(angle)) * (box.h*0.9)/2 + box.h/2;
+  this.neuron_locations[neuron.id] = {x: x, y:y};
 }
 
-NetworkDrawer.prototype.connecting_line_coords = function(network, pre_synaptic, post_synaptic) {
-  var pre_location = this.location_for(network.neurons.length, pre_synaptic.id);
-  var post_location = this.location_for(network.neurons.length, post_synaptic.id);
+NetworkDrawer.prototype.connecting_line_coords = function(pre_synaptic, post_synaptic) {
+  var pre_location = this.neuron_locations[pre_synaptic.id];
+  var post_location = this.neuron_locations[post_synaptic.id];
 
   var result = {
     x1: pre_location.x + this.neuron_radius,
@@ -207,22 +207,66 @@ NetworkDrawer.prototype.connecting_line_coords = function(network, pre_synaptic,
   return result;
 }
 
-NetworkDrawer.prototype.draw = function(network) {
-  for (var i=0; i < network.neurons.length; i++) {
-    this.draw_neuron(network, network.neurons[i]);
+NetworkDrawer.prototype.divisions_for = function(total) {
+  if(total == 1) {
+    return {x:1, y:1};
+  } else {
+    return {x: Math.ceil(total/2), y: 2};
+  }
+}
 
-    for (var j=0; j < network.neurons[i].connections.length; j++) {
-      var coords = this.connecting_line_coords(network, network.neurons[i], network.neurons[i].connections[j].neuron);
-      this.paper.arrow(coords.x1, coords.y1, coords.x2, coords.y2, 1);
-    };
+NetworkDrawer.prototype.box_for = function(index, total) {
+  var divs = this.divisions_for(total);
+  var height = this.paper.height/divs.y;
+  var width = this.paper.width/divs.x;
+
+  return {
+    x: Math.floor(index/total)*width,
+    y: (index%total)*height,
+    w: width,
+    h: height
   };
-};
+}
 
-NetworkDrawer.prototype.draw_neuron = function(network, neuron) {
-  var location = this.location_for(network.neurons.length, neuron.id);
-  this.neuron_locations[neuron.id] = location;
+NetworkDrawer.prototype.draw = function(network) {
+  var all_external_connections = [];
+  var sub_networks = network.all_networks();
+  for(var i=0;i<sub_networks.length;i++) {
+    var external_connections = this.draw_network(sub_networks[i], this.box_for(i, sub_networks.length));
+    all_external_connections.push(external_connections);
+  }
+}
 
-  var node = this.paper.circle(location.x+this.neuron_radius, location.y+this.neuron_radius, this.neuron_radius);
+NetworkDrawer.prototype.draw_network = function(network, box) {
+  var external_connections = [];
+  for (var i=0; i < network.neurons.length; i++) {
+    this.set_location_for(network.neurons[i], i, network.neurons.length, box);
+    this.draw_neuron(network.neurons[i]);
+  }
+
+  for (var i=0; i < network.neurons.length; i++) {
+    for (var j=0; j < network.neurons[i].connections.length; j++) {
+      var connection = network.neurons[i].connections[j];
+      if(connection.post_synaptic.network == network) {
+        // internal connection
+        var coords = this.connecting_line_coords(network.neurons[i],
+                                                 network.neurons[i].connections[j].post_synaptic);
+        this.paper.arrow(coords.x1, coords.y1, coords.x2, coords.y2, 1);
+      } else {
+        // external connection
+        external_connections.push(connection);
+      }
+    }
+  }
+
+  return external_connections;
+}
+
+NetworkDrawer.prototype.draw_neuron = function(neuron) {
+  var location = this.neuron_locations[neuron.id];
+  var node = this.paper.circle(location.x+this.neuron_radius,
+                               location.y+this.neuron_radius,
+                               this.neuron_radius);
   node.attr("fill", "#fff");
   node.attr("stroke", "#f00");
 
