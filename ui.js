@@ -7,10 +7,6 @@ function unit_vector(x1, y1, x2, y2) {
   };
 }
 
-function getClassName(obj) {
-  if (typeof obj != "object" || obj === null) return false;
-  return /(\w+)\(/.exec(obj.constructor.toString())[1];
-}
 
 Raphael.fn.arrow = function (x1, y1, x2, y2, size) {
   // some magic numbers
