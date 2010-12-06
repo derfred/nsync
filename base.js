@@ -42,11 +42,7 @@ if(typeof(Function.prototype.bind) != "function") {
 function Network(prefix) {
   this.neurons = [];
   this.sub_networks = [];
-  if(prefix != undefined) {
-    this.prefix = prefix;
-  } else {
-    this.prefix = "";
-  }
+  this.prefix = prefix != undefined ? prefix : "";
 }
 
 Network.default_options = {
