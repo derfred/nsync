@@ -104,6 +104,14 @@ Network.prototype.add_neuron = function(neuron) {
   this.neurons.push(neuron);
 };
 
+Network.prototype.all_neurons = function() {
+  var result = [];
+  this.each_neuron(function(n) {
+    result.push(n);
+  });
+  return result;
+}
+
 Network.prototype.each_neuron = function(callback) {
   if(this.sub_networks.length > 0) {
     for(var i=0;i<this.sub_networks.length;i++) {

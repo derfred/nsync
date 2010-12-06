@@ -198,6 +198,16 @@ test("iterating a network containing sub networks should ignore neurons on the m
   });
 });
 
+test("collecting all neurons", function() {
+  var net1 = network.new_sub_network("a");
+  var n1 = net1.new_neuron({ C: 1.04, gamma: 1 });
+  var net2 = network.new_sub_network("b");
+  var n2 = net2.new_neuron({ C: 1.04, gamma: 1 });
+
+  var result = network.all_neurons();
+  equals(result[0].id, n1.id);
+  equals(result[1].id, n2.id);
+});
 
 
 module("Simulator with zero time_factor", {
