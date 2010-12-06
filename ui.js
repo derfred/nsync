@@ -236,6 +236,14 @@ NetworkDrawer.prototype.draw = function(network) {
     var external_connections = this.draw_network(sub_networks[i], this.box_for(i, sub_networks.length));
     all_external_connections.push(external_connections);
   }
+
+  for(var i=0;i<all_external_connections.length;i++) {
+    for(var j=0;j<all_external_connections[i].length;j++) {
+      var connection = all_external_connections[i][j];
+      var coords = this.connecting_line_coords(connection.pre_synaptic, connection.post_synaptic);
+      this.paper.arrow(coords.x1, coords.y1, coords.x2, coords.y2, 1);
+    }
+  }
 }
 
 NetworkDrawer.prototype.draw_network = function(network, box) {
@@ -252,7 +260,7 @@ NetworkDrawer.prototype.draw_network = function(network, box) {
         // internal connection
         var coords = this.connecting_line_coords(network.neurons[i],
                                                  network.neurons[i].connections[j].post_synaptic);
-        this.paper.arrow(coords.x1, coords.y1, coords.x2, coords.y2, 1);
+        this.paper.arrow(coords.x1, coords.y1, coords.x2, coords.y2, 1).attr("stroke", "#ccc");;
       } else {
         // external connection
         external_connections.push(connection);
