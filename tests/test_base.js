@@ -250,7 +250,13 @@ test("detecting asynchrony", function() {
     neuron.set_phase(0, i*0.1);
   });
 
-  equals(network.synced_neurons(0, 0.001), []);
+  var result = network.synced_neurons(0, 0.001);
+  equals(result.length, 5);
+  equals(result[0][0].id, network.neurons[0].id);
+  equals(result[1][0].id, network.neurons[1].id);
+  equals(result[2][0].id, network.neurons[2].id);
+  equals(result[3][0].id, network.neurons[3].id);
+  equals(result[4][0].id, network.neurons[4].id);
 });
 
 test("detecting full synchrony within tolerance", function() {
@@ -260,7 +266,6 @@ test("detecting full synchrony within tolerance", function() {
   });
 
   var result = network.synced_neurons(0, 0.001);
-  result[0].sort(function(a, b) { return (a.id < b.id) ? -1 : 1; });
   equals(result.length, 1);
   for(var i=0;i<5;i++) {
     equals(network.neurons[i].id, result[0][i].id);
@@ -269,17 +274,18 @@ test("detecting full synchrony within tolerance", function() {
 
 test("detecting partial synchrony", function() {
   network.neurons[0].set_phase(0, 0.301);
-  network.neurons[1].set_phase(0, 0.302);
-  network.neurons[2].set_phase(0, 0.401);
+  network.neurons[1].set_phase(0, 0.401);
+  network.neurons[2].set_phase(0, 0.302);
   network.neurons[3].set_phase(0, 0.403);
   network.neurons[4].set_phase(0, 0.701);
 
   var result = network.synced_neurons(0, 0.01);
-  equals(result.length, 2);
+  equals(result.length, 3);
   equals(result[0][0].id, network.neurons[0].id);
-  equals(result[0][1].id, network.neurons[1].id);
-  equals(result[1][0].id, network.neurons[2].id);
+  equals(result[0][1].id, network.neurons[2].id);
+  equals(result[1][0].id, network.neurons[1].id);
   equals(result[1][1].id, network.neurons[3].id);
+  equals(result[2][0].id, network.neurons[4].id);
 });
 
 

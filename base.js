@@ -80,6 +80,32 @@ Network.fully_connected = function(total, options) {
   return network;
 }
 
+Network.prototype.synced_neurons = function(current_time, delta) {
+  var result = [];
+  var copy = this.neurons.slice();
+  while(copy.length > 0) {
+    var current = copy.shift();
+    var current_phase = current.current_phase(current_time);
+    var current_sync = [current];
+    for(var i=0;i<copy.length;i++) {
+      if(Math.abs(current_phase-copy[i].current_phase(current_time))<delta) {
+        current_sync.push(copy[i]);
+      }
+    }
+
+    for(var i=copy.length-1;i>=0;i--) {
+      for(var j=0;j<current_sync.length;j++) {
+        if(copy[i] == current_sync[j]) {
+          copy.splice(i, 1);
+        }
+      }
+    }
+
+    result.push(current_sync);
+  }
+  return result;
+}
+
 Network.prototype.set_prefix = function(prefix) {
   this.prefix = prefix;
   if(this.has_sub_networks()) {
