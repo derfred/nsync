@@ -140,7 +140,7 @@ module("Network", {
 var network;
 
 test("adding new neuron", function() {
-  var n1 = network.add_new_neuron(Network.default_options);
+  var n1 = network.new_neuron(Network.default_options);
   equals(n1.constructor, Neuron);
   equals(network.neurons.length, 1);
 });
@@ -165,7 +165,7 @@ module("Simulator with zero time_factor", {
 
 asyncTest("simulating free dynamics of single neuron", 2, function() {
   network = new Network();
-  network.add_new_neuron(merge(Network.default_options, {
+  network.new_neuron(merge(Network.default_options, {
     initial_phase: 0
   }));
   simulator.initialize(network);
@@ -180,8 +180,8 @@ asyncTest("simulating free dynamics of single neuron", 2, function() {
 
 asyncTest("simulating dynamics of single transmitted spike", function() {
   network = new Network();
-  var n1 = network.add_new_neuron({ C: 1.04, gamma: 1, initial_phase: 0.9 });
-  var n2 = network.add_new_neuron({ C: 1.04, gamma: 1, initial_phase: 0 });
+  var n1 = network.new_neuron({ C: 1.04, gamma: 1, initial_phase: 0.9 });
+  var n2 = network.new_neuron({ C: 1.04, gamma: 1, initial_phase: 0 });
 
   n1.connect(n2, 0.3, 0.1);
 
@@ -198,8 +198,8 @@ asyncTest("simulating dynamics of single transmitted spike", function() {
 
 asyncTest("simulating dynamics of two consequtive spikes sent to one neuron", function() {
   network = new Network();
-  var n1 = network.add_new_neuron({ C: 1.04, gamma: 1, initial_phase: 0.9 });
-  var n2 = network.add_new_neuron({ C: 1.04, gamma: 1, initial_phase: 0 });
+  var n1 = network.new_neuron({ C: 1.04, gamma: 1, initial_phase: 0.9 });
+  var n2 = network.new_neuron({ C: 1.04, gamma: 1, initial_phase: 0 });
 
   n1.connect(n2, 0.3, 0.2);
 

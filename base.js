@@ -54,12 +54,11 @@ Network.fully_connected = function(total, options) {
       initial_phase = options.initial_phases[i];
     }
 
-    var neuron = new Neuron({
+    network.new_neuron({
       C: options.C,
       gamma: options.gamma,
       initial_phase: initial_phase
     });
-    network.add_neuron(neuron);
   };
 
   for (var i=0; i < network.neurons.length; i++) {
@@ -73,7 +72,7 @@ Network.fully_connected = function(total, options) {
   return network;
 }
 
-Network.prototype.add_new_neuron = function(options) {
+Network.prototype.new_neuron = function(options) {
   var neuron = new Neuron(options);
   this.add_neuron(neuron);
   return neuron;
