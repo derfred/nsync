@@ -27,14 +27,16 @@ function merge(left, right) {
 
 export("merge", merge);
 
-Function.prototype.bind = function(self, var_args) {
-  var thisFunc = this;
-  var leftArgs = Array.slice(arguments, 1);
-  return function(var_args) {
-    var args = leftArgs.concat(Array.slice(arguments, 0));
-    return thisFunc.apply(self, args);
+if(typeof(Function.prototype.bind) != "function") {
+  Function.prototype.bind = function(self, var_args) {
+    var thisFunc = this;
+    var leftArgs = Array.slice(arguments, 1);
+    return function(var_args) {
+      var args = leftArgs.concat(Array.slice(arguments, 0));
+      return thisFunc.apply(self, args);
+    };
   };
-};  
+}
 
 
 function Network(prefix) {
