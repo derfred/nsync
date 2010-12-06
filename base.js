@@ -84,6 +84,10 @@ Network.fully_connected = function(total, options) {
   return network;
 }
 
+Network.prototype.has_sub_networks = function() {
+  return this.sub_networks.length > 0;
+}
+
 Network.prototype.new_sub_network = function(prefix) {
   var sub_network = new Network(prefix);
   this.add_sub_network(sub_network);
@@ -106,6 +110,18 @@ Network.prototype.add_neuron = function(neuron) {
   this.neurons.push(neuron);
 };
 
+Network.prototype.number_of_neurons = function() {
+  if(this.has_sub_networks()) {
+    var result = 0;
+    for(var i=0;i<this.sub_networks.length;i++) {
+      result += this.sub_networks[i].number_of_neurons();
+    }
+    return result;
+  } else {
+    return this.neurons.length;
+  }
+}
+
 Network.prototype.all_neurons = function() {
   var result = [];
   this.each_neuron(function(n) {
@@ -115,7 +131,7 @@ Network.prototype.all_neurons = function() {
 }
 
 Network.prototype.each_neuron = function(callback) {
-  if(this.sub_networks.length > 0) {
+  if(this.has_sub_networks()) {
     for(var i=0;i<this.sub_networks.length;i++) {
       this.sub_networks[i].each_neuron(callback);
     }

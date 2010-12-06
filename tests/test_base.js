@@ -177,6 +177,12 @@ test("adding an empty sub network", function() {
   equals(network.sub_networks.length, 1);
 });
 
+test("counting the total number of neurons across sub networks", function() {
+  network.add_sub_network(Network.fully_connected(10));
+  network.add_sub_network(Network.fully_connected(10));
+  equals(network.number_of_neurons(), 20);
+});
+
 test("iterating a network containing sub networks", function() {
   network.add_sub_network(Network.fully_connected(10));
   network.add_sub_network(Network.fully_connected(10));
