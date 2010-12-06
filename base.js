@@ -195,7 +195,8 @@ Neuron.prototype.set_phase = function(current_time, phase) {
 
 Neuron.prototype.connect = function(post_synaptic, delay, strength) {
   this.connections.push({
-    neuron: post_synaptic,
+    pre_synaptic: this,
+    post_synaptic: post_synaptic,
     delay: delay,
     strength: strength
   });
@@ -353,7 +354,7 @@ Simulator.prototype.neuron_reset = function(neuron) {
   for (var i=0; i < neuron.connections.length; i++) {
     this.event_queue.add_event(new Event(this.current_time+neuron.connections[i].delay, "spike", {
       sender: neuron,
-      recipient: neuron.connections[i].neuron,
+      recipient: neuron.connections[i].post_synaptic,
       strength: neuron.connections[i].strength
     }));
   }

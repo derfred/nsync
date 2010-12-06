@@ -127,7 +127,7 @@ test("connecting to other neurons", function() {
   var n2 = new Neuron({ C: 1.04, gamma: 1 });
   neuron.connect(n2, 0.3, 0.4);
   equals(neuron.connections.length, 1);
-  equals(neuron.connections[0].neuron, n2);
+  equals(neuron.connections[0].post_synaptic, n2);
 });
 
 
