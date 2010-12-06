@@ -27,9 +27,19 @@ function merge(left, right) {
 
 export("merge", merge);
 
+Function.prototype.bind = function(self, var_args) {
+  var thisFunc = this;
+  var leftArgs = Array.slice(arguments, 1);
+  return function(var_args) {
+    var args = leftArgs.concat(Array.slice(arguments, 0));
+    return thisFunc.apply(self, args);
+  };
+};  
+
 
 function Network(prefix) {
   this.neurons = [];
+  this.sub_networks = [];
   if(prefix != undefined) {
     this.prefix = prefix;
   } else {
@@ -72,6 +82,16 @@ Network.fully_connected = function(total, options) {
   return network;
 }
 
+Network.prototype.new_sub_network = function(prefix) {
+  var sub_network = new Network(prefix);
+  this.add_sub_network(sub_network);
+  return sub_network;
+}
+
+Network.prototype.add_sub_network = function(sub_network) {
+  this.sub_networks.push(sub_network);
+}
+
 Network.prototype.new_neuron = function(options) {
   var neuron = new Neuron(options);
   this.add_neuron(neuron);
@@ -83,6 +103,18 @@ Network.prototype.add_neuron = function(neuron) {
   neuron.network = this;
   this.neurons.push(neuron);
 };
+
+Network.prototype.each_neuron = function(callback) {
+  if(this.sub_networks.length > 0) {
+    for(var i=0;i<this.sub_networks.length;i++) {
+      this.sub_networks[i].each_neuron(callback);
+    }
+  } else {
+    for(var i=0;i<this.neurons.length;i++) {
+      callback(this.neurons[i]);
+    }
+  }
+}
 
 Network.prototype.get_neuron_by = function(neuron_id) {
   return this.neurons.filter(function(neuron) {
@@ -260,12 +292,11 @@ Simulator.prototype.initialize = function(network, drawer) {
     this.drawer.draw(network);
   }
 
-  for (var i=0; i < this.network.neurons.length; i++) {
-    var neuron = this.network.neurons[i];
+  this.network.each_neuron(function(neuron) {
     neuron.initialize(this.current_time);
     this.event_queue.add_event(new Event(neuron.next_reset(this.current_time), "reset", {recipient: neuron}));
-  };
-
+  }.bind(this));
+  
   if(this.drawer) {
     this.event_queue.add_event(new Event(this.redraw_interval, "redraw"));
   }

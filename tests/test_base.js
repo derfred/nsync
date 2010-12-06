@@ -146,6 +146,14 @@ test("adding new neuron", function() {
   equals(network.neurons.length, 1);
 });
 
+test("iterating all neurons", function() {
+  expect(10);
+  network = Network.fully_connected(10);
+  network.each_neuron(function(neuron) {
+    ok(true);
+  });
+});
+
 test("adding a neuron to a network with prefix", function() {
   network = new Network("a");
   var n1 = network.new_neuron(Network.default_options);
@@ -161,6 +169,35 @@ test("creating fully_connected network", function() {
     equals(9, network.neurons[i].connections.length);
   }
 });
+
+test("adding an empty sub network", function() {
+  var sub_network = network.new_sub_network("t");
+  equals(sub_network.constructor, Network);
+  equals(sub_network.prefix, "t");
+  equals(network.sub_networks.length, 1);
+});
+
+test("iterating a network containing sub networks", function() {
+  network.add_sub_network(Network.fully_connected(10));
+  network.add_sub_network(Network.fully_connected(10));
+
+  expect(20);
+  network.each_neuron(function(neuron) {
+    ok(true);
+  });
+});
+
+test("iterating a network containing sub networks should ignore neurons on the main network", function() {
+  network.add_sub_network(Network.fully_connected(10));
+  network.new_neuron(Network.default_options);
+  network.new_neuron(Network.default_options);
+
+  expect(10);
+  network.each_neuron(function(neuron) {
+    ok(true);
+  });
+});
+
 
 
 module("Simulator with zero time_factor", {
@@ -215,6 +252,26 @@ asyncTest("simulating dynamics of two consequtive spikes sent to one neuron", fu
     almost_equals(network.neurons[0].current_phase(1.5), 0.4);
     almost_equals(network.neurons[1].current_phase(1.5), 0.1);
     almost_equals(network.neurons[1].last_spike.time, 1.4);
+    equals(simulator.past_events.length, 6);
+
+    start();
+  });
+});
+
+asyncTest("simulating dynamics of two neurons in different sub networks", function() {
+  network = new Network();
+  var net1 = network.new_sub_network("a");
+  var n1 = net1.new_neuron({ C: 1.04, gamma: 1, initial_phase: 0.9 });
+  var net2 = network.new_sub_network("b");
+  var n2 = net2.new_neuron({ C: 1.04, gamma: 1, initial_phase: 0 });
+
+  n1.connect(n2, 0.3, 0.2);
+
+  simulator.initialize(network);
+  simulator.start(1.5, function() {
+    almost_equals(net1.neurons[0].current_phase(1.5), 0.4);
+    almost_equals(net2.neurons[0].current_phase(1.5), 0.1);
+    almost_equals(net2.neurons[0].last_spike.time, 1.4);
     equals(simulator.past_events.length, 6);
 
     start();
