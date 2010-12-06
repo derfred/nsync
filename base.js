@@ -84,30 +84,44 @@ Network.fully_connected = function(total, options) {
   return network;
 }
 
+Network.prototype.set_prefix = function(prefix) {
+  this.prefix = prefix;
+  if(this.has_sub_networks()) {
+    for(var i=0;i<this.sub_networks.length;i++) {
+      this.sub_networks[i].set_prefix(this.prefix+this.sub_networks[i]);
+    }
+  } else {
+    for(var i=0;i<this.neurons.length;i++) {
+      this.neurons[i].id = this.prefix + this.neurons[i].id;
+    }
+  }
+}
+
 Network.prototype.has_sub_networks = function() {
   return this.sub_networks.length > 0;
 }
 
 Network.prototype.new_sub_network = function(prefix) {
   var sub_network = new Network(prefix);
-  this.add_sub_network(sub_network);
-  return sub_network;
+  return this.add_sub_network(sub_network);
 }
 
 Network.prototype.add_sub_network = function(sub_network) {
+  sub_network.set_prefix(this.prefix+String.fromCharCode(97+this.sub_networks.length));
   this.sub_networks.push(sub_network);
+  return sub_network;
 }
 
 Network.prototype.new_neuron = function(options) {
   var neuron = new Neuron(options);
-  this.add_neuron(neuron);
-  return neuron;
+  return this.add_neuron(neuron);
 }
 
 Network.prototype.add_neuron = function(neuron) {
   neuron.id = this.prefix + this.neurons.length;
   neuron.network = this;
   this.neurons.push(neuron);
+  return neuron;
 };
 
 Network.prototype.number_of_neurons = function() {

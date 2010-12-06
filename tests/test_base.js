@@ -171,10 +171,21 @@ test("creating fully_connected network", function() {
 });
 
 test("adding an empty sub network", function() {
-  var sub_network = network.new_sub_network("t");
+  var sub_network = network.new_sub_network();
   equals(sub_network.constructor, Network);
-  equals(sub_network.prefix, "t");
   equals(network.sub_networks.length, 1);
+});
+
+test("adding a sub network without prefix will generate one", function() {
+  var sub_network = network.new_sub_network();
+  equals(sub_network.prefix, "a");
+});
+
+test("adding a sub network without prefix will update included neuron ids", function() {
+  var sub_net = network.add_sub_network(Network.fully_connected(10));
+  sub_net.each_neuron(function(neuron) {
+    equals(neuron.id[0], "a");
+  });
 });
 
 test("counting the total number of neurons across sub networks", function() {
