@@ -236,6 +236,53 @@ test("collecting all networks", function() {
 });
 
 
+module("Network synchronization status", {
+  setup: function() {
+    network = new Network();
+    for(var i=0;i<5;i++) {
+      network.new_neuron(Network.default_options);
+    }
+  }
+});
+
+test("detecting asynchrony", function() {
+  network.each_neuron(function(neuron, i) {
+    neuron.set_phase(0, i*0.1);
+  });
+
+  equals(network.synced_neurons(0, 0.001), []);
+});
+
+test("detecting full synchrony within tolerance", function() {
+  network.each_neuron(function(neuron) {
+    var delta = (Math.random()-0.5) * 1e-6;
+    neuron.set_phase(0, 0.5+delta);
+  });
+
+  var result = network.synced_neurons(0, 0.001);
+  result[0].sort(function(a, b) { return (a.id < b.id) ? -1 : 1; });
+  equals(result.length, 1);
+  for(var i=0;i<5;i++) {
+    equals(network.neurons[i].id, result[0][i].id);
+  }
+});
+
+test("detecting partial synchrony", function() {
+  network.neurons[0].set_phase(0, 0.301);
+  network.neurons[1].set_phase(0, 0.302);
+  network.neurons[2].set_phase(0, 0.401);
+  network.neurons[3].set_phase(0, 0.403);
+  network.neurons[4].set_phase(0, 0.701);
+
+  var result = network.synced_neurons(0, 0.01);
+  equals(result.length, 2);
+  equals(result[0][0].id, network.neurons[0].id);
+  equals(result[0][1].id, network.neurons[1].id);
+  equals(result[1][0].id, network.neurons[2].id);
+  equals(result[1][1].id, network.neurons[3].id);
+});
+
+
 module("Simulator with zero time_factor", {
   setup: function() {
     simulator = new Simulator(0);
