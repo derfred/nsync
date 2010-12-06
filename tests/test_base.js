@@ -1,20 +1,28 @@
+var almost_equal;
 if(typeof window == "undefined") {
   module = QUnit.module;
 
   function log(msg) {
     require("util").log(msg);
   }
-
+  //log("no window")
   var base = require("../base.js");
   var EventQueue = base.EventQueue;
   var merge = base.merge;
-}
 
-function almost_equals(actual, expected, delta) {
-  if(!delta) {
-    delta = 0.0001;
+  almost_equals = function(actual, expected, delta) {
+    if(!delta) {
+      delta = 0.0001;
+    }
+    ok(Math.abs(actual-expected)<delta);
   }
-  QUnit.push(Math.abs(actual-expected) < delta, actual, expected);
+} else {
+  almost_equals = function(actual, expected, delta) {
+    if(!delta) {
+      delta = 0.0001;
+    }
+    QUnit.push(Math.abs(actual-expected) < delta, actual, expected);
+  }
 }
 
 
