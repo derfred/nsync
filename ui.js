@@ -211,8 +211,8 @@ NetworkDrawer.prototype.draw = function(network) {
   for (var i=0; i < network.neurons.length; i++) {
     this.draw_neuron(network, network.neurons[i]);
 
-    for (var j=0; j < network.connections[network.neurons[i].id].length; j++) {
-      var coords = this.connecting_line_coords(network, network.neurons[i], network.connections[network.neurons[i].id][j].neuron);
+    for (var j=0; j < network.neurons[i].connections.length; j++) {
+      var coords = this.connecting_line_coords(network, network.neurons[i], network.neurons[i].connections[j].neuron);
       this.paper.arrow(coords.x1, coords.y1, coords.x2, coords.y2, 1);
     };
   };
