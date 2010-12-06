@@ -30,7 +30,11 @@ export("merge", merge);
 
 function Network(prefix) {
   this.neurons = [];
-  this.prefix = prefix;
+  if(prefix != undefined) {
+    this.prefix = prefix;
+  } else {
+    this.prefix = "";
+  }
 }
 
 Network.default_options = {
@@ -76,18 +80,10 @@ Network.prototype.add_new_neuron = function(options) {
 }
 
 Network.prototype.add_neuron = function(neuron) {
-  neuron.id = this.neurons.length;
+  neuron.id = this.prefix + this.neurons.length;
   neuron.network = this;
   this.neurons.push(neuron);
 };
-
-Network.prototype.connect = function(pre_synaptic, post_synaptic, delay, strength) {
-  this.connections[pre_synaptic.id].push({
-    neuron: post_synaptic,
-    delay: delay,
-    strength: strength
-  });
-}
 
 Network.prototype.get_neuron_by = function(neuron_id) {
   return this.neurons.filter(function(neuron) {
