@@ -349,9 +349,22 @@ export("EventQueue", EventQueue);
 
 function Simulator(time_factor) {
   this.event_queue = new EventQueue();
+  this.observers = [];
 
   this.time_factor = time_factor != undefined ? time_factor : 1000;
   this.redraw_interval = 0.01;
+}
+
+Simulator.prototype.add_observer = function(observer) {
+  this.observers.push(observer);
+}
+
+Simulator.prototype.propagate_event = function(type, options) {
+  for(var i=0;i<this.observers.length;i++) {
+    if(typeof(this.observers[i]["event_"+type]) == "function") {
+      this.observers[i]["event_"+type](this, options);
+    }
+  }
 }
 
 Simulator.prototype.initialize = function(network, drawer) {
@@ -371,10 +384,12 @@ Simulator.prototype.initialize = function(network, drawer) {
     neuron.initialize(this.current_time);
     this.event_queue.add_event(new Event(neuron.next_reset(this.current_time), "reset", {recipient: neuron}));
   }.bind(this));
-  
+
   if(this.drawer) {
     this.event_queue.add_event(new Event(this.redraw_interval, "redraw"));
   }
+
+  this.propagate_event("initialize");
 }
 
 Simulator.prototype.neuron_reset = function(neuron) {
@@ -420,6 +435,7 @@ Simulator.prototype.event_spike = function(event) {
   // because of rounding errors the effect of a spike causing a reset needs to be handled explicitly
   var fired = event.options.recipient.receive_spike(this.current_time, event.options.strength);
   if(fired) {
+    this.propagate_event("reset", { recipient: event.options.recipient });
     this.neuron_reset(event.options.recipient);
   } else {
     var next_reset = event.options.recipient.next_reset(this.current_time);
@@ -443,6 +459,7 @@ Simulator.prototype.execute_event = function(evt) {
     }
 
     this["event_"+event.type](event);
+    this.propagate_event(event.type, event.options);
 
     var event = this.event_queue.pop_next_event();
     if(event) {

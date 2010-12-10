@@ -296,6 +296,25 @@ module("Simulator with zero time_factor", {
   }
 });
 
+asyncTest("adding observers", 2, function() {
+  function TestObserver() {}
+  TestObserver.prototype.event_initialize = function(_simulator) {
+    equals(_simulator.current_time, 0);
+  }
+  TestObserver.prototype.event_reset = function(_simulator) {
+    equals(_simulator.current_time, 0.5);
+  }
+
+  network = new Network();
+  network.new_neuron({ initial_phase: 0.5 });
+
+  simulator.add_observer(new TestObserver());
+  simulator.initialize(network);
+  simulator.start(1, function() {
+    start();
+  });
+});
+
 asyncTest("simulating free dynamics of single neuron", 2, function() {
   network = new Network();
   network.new_neuron(merge(Network.default_options, {
