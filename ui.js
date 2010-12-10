@@ -603,7 +603,7 @@ function Drawer() {
     new SpikeDiagramDrawer(),
     new PhaseDifferenceDiagramDrawer()
   ];
-
+  this.redraw_interval = 0.01;
   this.register_tab_switcher();
 }
 
@@ -652,4 +652,23 @@ Drawer.prototype.register_tab_switcher = function() {
     drawer.current_tab = $(this).attr("href").replace("#", "");
   });
   this.current_tab = "spikes";
+}
+
+Drawer.prototype.event_initialize = function(simulator) {
+  this.reset();
+  this.draw(simulator.network);
+  simulator.new_event(this.redraw_interval, "redraw");
+}
+
+Drawer.prototype.event_spike = function(simulator) {
+  this.redraw(simulator.network, simulator.current_time);
+}
+
+Drawer.prototype.event_reset = function(simulator, options) {
+  this.neuron_fired(options.recipient, simulator.current_time);
+}
+
+Drawer.prototype.event_redraw = function(simulator) {
+  this.redraw(simulator.network, simulator.current_time);
+  simulator.new_event(simulator.current_time + this.redraw_interval, "redraw");
 }

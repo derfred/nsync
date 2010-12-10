@@ -185,7 +185,8 @@
         var drawer = new Drawer();
 
         simulator = new Simulator();
-        simulator.initialize(network, drawer);
+        simulator.add_observer(drawer);
+        simulator.initialize(network);
 
         drawer.neuron_click(function(neuron_id) {
           simulator.perturb_neuron(neuron_id, $F("pertubation_amount"));

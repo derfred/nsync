@@ -352,7 +352,6 @@ function Simulator(time_factor) {
   this.observers = [];
 
   this.time_factor = time_factor != undefined ? time_factor : 1000;
-  this.redraw_interval = 0.01;
 }
 
 Simulator.prototype.add_observer = function(observer) {
@@ -367,27 +366,17 @@ Simulator.prototype.propagate_event = function(type, options) {
   }
 }
 
-Simulator.prototype.initialize = function(network, drawer) {
+Simulator.prototype.initialize = function(network) {
   this.network = network;
-  this.drawer = drawer;
 
   this.current_time = 0.0;
   this.event_queue.clear();
   this.past_events = [];
 
-  if(this.drawer) {
-    this.drawer.reset();
-    this.drawer.draw(network);
-  }
-
   this.network.each_neuron(function(neuron) {
     neuron.initialize(this.current_time);
     this.event_queue.add_event(new Event(neuron.next_reset(this.current_time), "reset", {recipient: neuron}));
   }.bind(this));
-
-  if(this.drawer) {
-    this.event_queue.add_event(new Event(this.redraw_interval, "redraw"));
-  }
 
   this.propagate_event("initialize");
 }
@@ -416,15 +405,10 @@ Simulator.prototype.event_reset = function(event) {
 }
 
 Simulator.prototype.event_redraw = function(event) {
-  this.drawer.redraw(this.network, this.current_time);
-  this.event_queue.add_event(new Event(this.current_time + this.redraw_interval, "redraw"));
+  
 }
 
 Simulator.prototype.event_spike = function(event) {
-  if(this.drawer) {
-    this.drawer.redraw(this.network, this.current_time);
-  }
-
   var reset_event_index = this.event_queue.find_next_event_index(function(evt) {
     return evt.type == "reset" && evt.options.recipient == event.options.recipient;
   });
@@ -475,6 +459,10 @@ Simulator.prototype.execute_timed = function(event, callback) {
     self.current_time = event.time;
     callback.apply(self, [event]);
   }, this.wait_time(event));
+}
+
+Simulator.prototype.new_event = function(time, type, options) {
+  this.event_queue.add_event(new Event(time, type, options));
 }
 
 Simulator.prototype.wait_time = function(event) {
