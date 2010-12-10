@@ -346,10 +346,63 @@ EventQueue.prototype.dump_queue = function() {
 export("EventQueue", EventQueue);
 
 
+function NetworkDynamicsObserver() {
+  
+}
+
+NetworkDynamicsObserver.prototype.event_initialize = function(simulator) {
+  simulator.network.each_neuron(function(neuron) {
+    neuron.initialize(simulator.current_time);
+    simulator.new_event(neuron.next_reset(simulator.current_time), "reset", {recipient: neuron});
+  });
+}
+
+NetworkDynamicsObserver.prototype.event_reset = function(simulator, options) {
+  var neuron = options.recipient;
+  neuron.reset(simulator.current_time);
+
+  var next_reset = neuron.next_reset(simulator.current_time);
+  simulator.new_event(next_reset, "reset", {recipient: neuron});
+
+  for (var i=0; i < neuron.connections.length; i++) {
+    simulator.new_event(simulator.current_time+neuron.connections[i].delay, "spike", {
+      sender: neuron,
+      recipient: neuron.connections[i].post_synaptic,
+      strength: neuron.connections[i].strength
+    });
+  }
+}
+
+NetworkDynamicsObserver.prototype.event_spike = function(simulator, options) {
+  var reset_event_index = simulator.event_queue.find_next_event_index(function(evt) {
+    return evt.type == "reset" && evt.options.recipient == event.options.recipient;
+  });
+  if(reset_event_index != undefined) {
+    simulator.event_queue.remove_indexed_event(reset_event_index);
+  }
+
+  // because of rounding errors the effect of a spike causing a reset needs to be handled explicitly
+  var fired = options.recipient.receive_spike(simulator.current_time, options.strength);
+  if(fired) {
+    simulator.propagate_event("reset", { recipient: options.recipient });
+  } else {
+    var next_reset = options.recipient.next_reset(simulator.current_time);
+    simulator.new_event(next_reset, "reset", {recipient: options.recipient});
+  }
+}
+
+NetworkDynamicsObserver.prototype.event_stop = function(simulator, options) {
+  simulator.event_queue.clear();
+  if(options.callback) {
+    setTimeout(options.callback, 10);
+  }
+}
+
+
 
 function Simulator(time_factor) {
   this.event_queue = new EventQueue();
-  this.observers = [];
+  this.observers = [new NetworkDynamicsObserver()];
 
   this.time_factor = time_factor != undefined ? time_factor : 1000;
 }
@@ -373,66 +426,7 @@ Simulator.prototype.initialize = function(network) {
   this.event_queue.clear();
   this.past_events = [];
 
-  this.network.each_neuron(function(neuron) {
-    neuron.initialize(this.current_time);
-    this.event_queue.add_event(new Event(neuron.next_reset(this.current_time), "reset", {recipient: neuron}));
-  }.bind(this));
-
   this.propagate_event("initialize");
-}
-
-Simulator.prototype.neuron_reset = function(neuron) {
-  if(this.drawer) {
-    this.drawer.neuron_fired(neuron, this.current_time);
-  }
-
-  var next_reset = neuron.next_reset(this.current_time);
-  this.event_queue.add_event(new Event(next_reset, "reset", {recipient: neuron}));
-
-  for (var i=0; i < neuron.connections.length; i++) {
-    this.event_queue.add_event(new Event(this.current_time+neuron.connections[i].delay, "spike", {
-      sender: neuron,
-      recipient: neuron.connections[i].post_synaptic,
-      strength: neuron.connections[i].strength
-    }));
-  }
-}
-
-Simulator.prototype.event_reset = function(event) {
-  var recipient = event.options.recipient;
-  recipient.reset(this.current_time);
-  this.neuron_reset(recipient);
-}
-
-Simulator.prototype.event_redraw = function(event) {
-  
-}
-
-Simulator.prototype.event_spike = function(event) {
-  var reset_event_index = this.event_queue.find_next_event_index(function(evt) {
-    return evt.type == "reset" && evt.options.recipient == event.options.recipient;
-  });
-  if(reset_event_index != undefined) {
-    this.event_queue.remove_indexed_event(reset_event_index);
-  }
-
-  // because of rounding errors the effect of a spike causing a reset needs to be handled explicitly
-  var fired = event.options.recipient.receive_spike(this.current_time, event.options.strength);
-  if(fired) {
-    this.propagate_event("reset", { recipient: event.options.recipient });
-    this.neuron_reset(event.options.recipient);
-  } else {
-    var next_reset = event.options.recipient.next_reset(this.current_time);
-    this.event_queue.add_event(new Event(next_reset, "reset", {recipient: event.options.recipient}));
-  }
-}
-
-Simulator.prototype.event_stop = function(event) {
-  this.event_queue.clear();
-  if(event.options.callback) {
-    setTimeout(event.options.callback, 10);
-  }
-  return false;
 }
 
 Simulator.prototype.execute_event = function(evt) {
@@ -442,7 +436,6 @@ Simulator.prototype.execute_event = function(evt) {
       this.past_events.push(event);
     }
 
-    this["event_"+event.type](event);
     this.propagate_event(event.type, event.options);
 
     var event = this.event_queue.pop_next_event();

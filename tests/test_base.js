@@ -339,9 +339,9 @@ asyncTest("simulating dynamics of single transmitted spike", function() {
 
   simulator.initialize(network);
   simulator.start(0.5, function() {
-    equals(network.neurons[0].current_phase(0.5), 0.4);
-    almost_equals(network.neurons[1].current_phase(0.5), 0.6548363777407726);
-    almost_equals(network.neurons[1].last_spike.time, 0.4);
+    equals(n1.current_phase(0.5), 0.4);
+    almost_equals(n2.current_phase(0.5), 0.6548363777407726);
+    almost_equals(n2.last_spike.time, 0.4);
     equals(simulator.past_events.length, 3);
 
     start();
