@@ -49,7 +49,6 @@
         $("#init_params").submit(function() {
           if(simulator) {
             simulator.stop(function() {
-              simulator.reset();
               var network = generate_network_from_params();
               simulator.initialize(network, drawer);
               simulator.start();
