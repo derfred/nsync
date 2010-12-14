@@ -401,7 +401,8 @@ PoissonNoiseGenerator.prototype.add_noise_event = function(neuron, simulator) {
 }
 
 PoissonNoiseGenerator.prototype.next_time = function(current_time) {
-  
+  // this generates a random number with exponential distribution
+  return current_time - (1/this.rate)*Math.log(Math.random());
 }
 
 export("PoissonNoiseGenerator", PoissonNoiseGenerator);
