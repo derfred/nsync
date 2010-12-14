@@ -388,11 +388,11 @@ PoissonNoiseGenerator.prototype.event_noise = function(simulator, options) {
   var network = this.network ? this.network : simulator.network;
   if(network.contains(options.recipient)) {
     simulator.propagate_event("spike", options);
-    this.add_noise_event(options.recipient, simulator);
+    this.add_noise_event(simulator, options.recipient);
   }
 }
 
-PoissonNoiseGenerator.prototype.add_noise_event = function(neuron, simulator) {
+PoissonNoiseGenerator.prototype.add_noise_event = function(simulator, neuron) {
   var strength = Math.random() > 0.5 ? this.amplitude : -this.amplitude;
   simulator.new_event(this.next_time(simulator.current_time), "noise", {
     recipient: neuron,
