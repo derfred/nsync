@@ -190,6 +190,15 @@ Network.prototype.each_neuron = function(callback, base) {
   }
 }
 
+Network.prototype.contains = function(neuron) {
+  var result = false;
+  this.each_neuron(function(_neuron) {
+    // TODO break after finding the neuron
+    result = result || (_neuron == neuron);
+  });
+  return result;
+}
+
 Network.prototype.get_neuron_by = function(neuron_id) {
   return this.neurons.filter(function(neuron) {
     return neuron.id == neuron_id;

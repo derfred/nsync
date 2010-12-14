@@ -154,6 +154,16 @@ test("iterating all neurons", function() {
   });
 });
 
+test("testing whether a network contains a neuron", function() {
+  var net1 = network.new_sub_network();
+  var n1 = net1.new_neuron(Network.default_options);
+  var net2 = network.new_sub_network();
+
+  ok(net1.contains(n1));
+  ok(network.contains(n1));
+  ok(!net2.contains(n1));
+});
+
 test("adding a neuron to a network with prefix", function() {
   network = new Network("a");
   var n1 = network.new_neuron(Network.default_options);
