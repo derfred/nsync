@@ -491,6 +491,10 @@ Simulator.prototype.initialize = function(network) {
   this.propagate_event("initialize");
 }
 
+Simulator.prototype.reset = function() {
+  this.observers = [new NetworkDynamicsObserver()];
+}
+
 Simulator.prototype.execute_event = function(evt) {
   // this slows the simulation so that it is observable
   this.execute_timed(evt, function(event) {
