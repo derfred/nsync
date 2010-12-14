@@ -346,6 +346,58 @@ EventQueue.prototype.dump_queue = function() {
 export("EventQueue", EventQueue);
 
 
+/*
+*  This noise generator will simulate noise via a poisson process of spikes added to each neuron.
+*  The spikes will be positive or negative with equal probability.
+*  By specifying the network parameter, the noise can be localized to a specific subnetwork
+*
+*  This is used in the following way:
+*    var simulator = new Simulator();
+*    var network = new Network(.....);
+*
+*    // this adds noise to the entire network
+*    simulator.add_observer(new PoissonNoiseGenerator(0.5, 0.02));
+*
+*    // this adds noise only to a sub network
+*    simulator.add_observer(new PoissonNoiseGenerator(0.5, 0.02, network));
+*
+*/
+function PoissonNoiseGenerator(rate, amplitude, network) {
+  this.rate = rate;
+  this.amplitude = amplitude;
+  this.network = network;
+}
+
+PoissonNoiseGenerator.prototype.event_initialize = function(simulator) {
+  var network = this.network ? this.network : simulator.network;
+  network.each_neuron(this.add_noise_event.bind(this, simulator));
+}
+
+PoissonNoiseGenerator.prototype.event_noise = function(simulator, options) {
+  // If multiple noise generators for different sub networks are present,
+  // each generator needs to ensure to only operate on its sub network.
+  var network = this.network ? this.network : simulator.network;
+  if(network.contains(options.recipient)) {
+    simulator.propagate_event("spike", options);
+    this.add_noise_event(options.recipient, simulator);
+  }
+}
+
+PoissonNoiseGenerator.prototype.add_noise_event = function(neuron, simulator) {
+  var strength = Math.random() > 0.5 ? this.amplitude : -this.amplitude;
+  simulator.new_event(this.next_time(simulator.current_time), "noise", {
+    recipient: neuron,
+    strength: strength
+  });
+}
+
+PoissonNoiseGenerator.prototype.next_time = function(current_time) {
+  
+}
+
+export("PoissonNoiseGenerator", PoissonNoiseGenerator);
+
+
 function NetworkDynamicsObserver() {
   
 }
