@@ -306,6 +306,20 @@ module("Simulator with zero time_factor", {
   }
 });
 
+test("spike collation", function() {
+  network = new Network();
+  var n1 = network.new_neuron(Network.default_options);
+  var n2 = network.new_neuron(Network.default_options);
+  
+  simulator.new_event(0.5, "spike", {recipient: n1, strength: 0.3});
+  simulator.new_event(0.5, "spike", {recipient: n1, strength: 0.3});
+  simulator.new_event(0.5, "spike", {recipient: n2, strength: 0.3});
+  
+  equals(simulator.event_queue.events.length, 2);
+  equals(simulator.event_queue.events[0].options.strength, 0.6);
+  equals(simulator.event_queue.events[0].options.recipient.id, n1.id);
+});
+
 asyncTest("adding observers", 2, function() {
   function TestObserver() {}
   TestObserver.prototype.event_initialize = function(_simulator) {

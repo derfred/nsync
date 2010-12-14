@@ -333,6 +333,13 @@ EventQueue.prototype.find_next_event_index = function(predicate) {
   };
 }
 
+EventQueue.prototype.find_next_event = function(predicate) {
+  var index = this.find_next_event_index(predicate);
+  if(index != undefined) {
+    return this.events[index];
+  }
+}
+
 EventQueue.prototype.remove_indexed_event = function(index) {
   this.events.splice(index, 1);
 }
@@ -412,6 +419,24 @@ function NetworkDynamicsObserver() {
   
 }
 
+NetworkDynamicsObserver.prototype.add_event = function(event, event_queue) {
+  if(event.type == "spike") {
+    // spike for the same neuron seperated by by less than this amount are collated
+    var min_spike_seperation = 10e-6;
+    var existing_event = event_queue.find_next_event(function(evt) {
+      return evt.options.recipient == event.options.recipient && 
+                Math.abs(evt.time - event.time) < min_spike_seperation;
+    });
+    if(existing_event) {
+      existing_event.options.strength += event.options.strength;
+    } else {
+      event_queue.add_event(event);
+    }
+  } else {
+    event_queue.add_event(event);
+  }
+}
+
 NetworkDynamicsObserver.prototype.event_initialize = function(simulator) {
   simulator.network.each_neuron(function(neuron) {
     neuron.initialize(simulator.current_time);
@@ -464,7 +489,8 @@ NetworkDynamicsObserver.prototype.event_stop = function(simulator, options) {
 
 function Simulator(time_factor) {
   this.event_queue = new EventQueue();
-  this.observers = [new NetworkDynamicsObserver()];
+  this.dynamics = new NetworkDynamicsObserver();
+  this.observers = [];
 
   this.time_factor = time_factor != undefined ? time_factor : 1000;
 }
@@ -479,6 +505,14 @@ Simulator.prototype.propagate_event = function(type, options) {
       this.observers[i]["event_"+type](this, options);
     }
   }
+
+  // make sure dynamics happen after the observers, otherwise the
+  // events propagated to the observers might be in the wrong order
+  // ie. if a spike causes reset, the spike event needs to be propagated
+  // before the reset event
+  if(typeof(this.dynamics["event_"+type]) == "function") {
+    this.dynamics["event_"+type](this, options);
+  }
 }
 
 Simulator.prototype.initialize = function(network) {
@@ -492,7 +526,7 @@ Simulator.prototype.initialize = function(network) {
 }
 
 Simulator.prototype.reset = function() {
-  this.observers = [new NetworkDynamicsObserver()];
+  this.observers = [];
 }
 
 Simulator.prototype.execute_event = function(evt) {
@@ -521,7 +555,8 @@ Simulator.prototype.execute_timed = function(event, callback) {
 }
 
 Simulator.prototype.new_event = function(time, type, options) {
-  this.event_queue.add_event(new Event(time, type, options));
+  // the network dynamics get to change events being added to the queue
+  this.dynamics.add_event(new Event(time, type, options), this.event_queue);
 }
 
 Simulator.prototype.wait_time = function(event) {
