@@ -400,8 +400,9 @@ PoissonNoiseGenerator.prototype.event_noise = function(simulator, options) {
 }
 
 PoissonNoiseGenerator.prototype.add_noise_event = function(simulator, neuron) {
-  var strength = Math.random() > 0.5 ? this.amplitude : -this.amplitude;
-  simulator.new_event(this.next_time(simulator.current_time), "noise", {
+  var strength = (Math.random() - 0.5) * this.amplitude;
+  var time = Math.max(20, this.next_time(simulator.current_time))
+  simulator.new_event(time, "noise", {
     recipient: neuron,
     strength: strength
   });
