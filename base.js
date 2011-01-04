@@ -375,13 +375,17 @@ export("EventQueue", EventQueue);
 *    simulator.add_observer(new PoissonNoiseGenerator(0.5, 0.02));
 *
 *    // this adds noise only to a sub network
-*    simulator.add_observer(new PoissonNoiseGenerator(0.5, 0.02, network));
+*    simulator.add_observer(new PoissonNoiseGenerator(0.5, 0.02, {"network": network}));
+*
+*    // also can add a start time for the noise, then the generator will be turned on at that time:
+*    simulator.add_observer(new PoissonNoiseGenerator(0.5, 0.02, {"start_time": 20}));
 *
 */
-function PoissonNoiseGenerator(rate, amplitude, network) {
+function PoissonNoiseGenerator(rate, amplitude, options) {
   this.rate = rate;
   this.amplitude = amplitude;
-  this.network = network;
+  this.network = options ? options.network : undefined;
+  this.start_time = (options && options.start_time) ? options.start_time : 0;
 }
 
 PoissonNoiseGenerator.prototype.event_initialize = function(simulator) {
@@ -401,7 +405,7 @@ PoissonNoiseGenerator.prototype.event_noise = function(simulator, options) {
 
 PoissonNoiseGenerator.prototype.add_noise_event = function(simulator, neuron) {
   var strength = (Math.random() - 0.5) * this.amplitude;
-  var time = Math.max(20, this.next_time(simulator.current_time))
+  var time = Math.max(this.start_time, this.next_time(simulator.current_time))
   simulator.new_event(time, "noise", {
     recipient: neuron,
     strength: strength
