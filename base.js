@@ -25,6 +25,14 @@ function merge(left, right) {
   }
 }
 
+function defer(callback, waittime) {
+  if(typeof(require) == "undefined" || waittime > 0) {
+    setTimeout(callback, waittime);
+  } else {
+    process.nextTick(callback);
+  }
+}
+
 export("merge", merge);
 
 if(typeof(Function.prototype.bind) != "function") {
@@ -486,7 +494,7 @@ NetworkDynamicsObserver.prototype.event_spike = function(simulator, options) {
 NetworkDynamicsObserver.prototype.event_stop = function(simulator, options) {
   simulator.event_queue.clear();
   if(options.callback) {
-    setTimeout(options.callback, 10);
+    defer(options.callback, 10);
   }
 }
 
@@ -553,7 +561,7 @@ Simulator.prototype.execute_event = function(evt) {
 Simulator.prototype.execute_timed = function(event, callback) {
   var self = this;
   this.next_event_time = event.time;
-  setTimeout(function() {
+  defer(function() {
     self.current_time = event.time;
     callback.apply(self, [event]);
   }, this.wait_time(event));
@@ -567,9 +575,9 @@ Simulator.prototype.new_event = function(time, type, options) {
 Simulator.prototype.wait_time = function(event) {
   if(event.time >= this.current_time) {
     var wait = event.time*this.time_factor + this.real_start_time - (new Date()).getTime();
-    return Math.max(wait, 1);
+    return Math.max(wait, 0);
   } else {
-    return 1;
+    return 0;
   }
 }
 
