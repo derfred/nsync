@@ -56,7 +56,7 @@ function Network(prefix) {
 Network.default_options = {
   delay: 0.3,
   strength: 0.023,
-  C: 1.04,
+  I: 1.04,
   gamma: 1
 };
 
@@ -71,7 +71,7 @@ Network.fully_connected = function(total, options) {
     }
 
     network.new_neuron({
-      C: options.C,
+      I: options.I,
       gamma: options.gamma,
       initial_phase: initial_phase
     });
@@ -220,7 +220,7 @@ export("Network", Network);
 function Neuron(options) {
   this.initial_phase = options.initial_phase != undefined ? options.initial_phase : Math.random();
   this.gamma = options.gamma;
-  this.C = options.C;
+  this.I = options.I;
   this.connections = [];
 };
 
@@ -268,12 +268,16 @@ Neuron.prototype.phase_jump = function(current_phase, strength) {
   return this.g(strength + this.f(current_phase));
 }
 
-Neuron.prototype.f = function(phase, options) {
-  return this.C * (1-Math.exp(-this.gamma*phase));
+Neuron.prototype.T = function() {
+  return Math.log(this.I/(this.I-this.gamma))/this.gamma;
+}
+
+Neuron.prototype.f = function(phase) {
+  return this.I/this.gamma * (1 - Math.exp(-phase*this.T()))
 },
 
-Neuron.prototype.g = function(x, options) {
-  return (1/this.gamma) * Math.log(this.C/(this.C-x));
+Neuron.prototype.g = function(x) {
+  return -(1/this.T()) * Math.log(1 - x*this.gamma/this.I);
 }
 
 export("Neuron", Neuron);
