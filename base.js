@@ -319,7 +319,15 @@ EventQueue.prototype.empty = function() {
 }
 
 EventQueue.prototype.sort_queue = function() {
-  this.events.sort(function(a, b) { return a.time-b.time; });
+  this.events.sort(function(a, b) {
+    if(a.time == b.time && a.options.recipient && b.options.recipient) {
+      var a_id = parseInt(a.options.recipient.id.replace(/\D/, ""));
+      var b_id = parseInt(b.options.recipient.id.replace(/\D/, ""));
+      return a_id-b_id;
+    } else {
+      return a.time-b.time;
+    }
+  });
 }
 
 EventQueue.prototype.add_event = function(event) {
