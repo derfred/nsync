@@ -73,7 +73,7 @@ test("finding an item by predicate", function() {
 
 module("Neuron", {
   setup: function() {
-    neuron = new Neuron({ C: 1.04, gamma: 1 });
+    neuron = new Neuron({ I: 1.04, gamma: 1 });
     neuron.reset(0);    // each test starts with zero phase
   }
 });
@@ -93,8 +93,8 @@ test("receiving reset sets phase to zero", function() {
 });
 
 test("receiving spike will cause phase jump", function() {
-  neuron.receive_spike(0.5, 0.1);
-  almost_equals(neuron.current_phase(0.5), 0.6726059759638713);
+  neuron.receive_spike(0.2, 0.1);
+  almost_equals(neuron.current_phase(0.2), 0.26259348106668534);
 });
 
 test("receiving reset after spike will reset phase to zero", function() {
@@ -356,15 +356,15 @@ asyncTest("simulating free dynamics of single neuron", 2, function() {
 
 asyncTest("simulating dynamics of single transmitted spike", function() {
   network = new Network();
-  var n1 = network.new_neuron({ C: 1.04, gamma: 1, initial_phase: 0.9 });
-  var n2 = network.new_neuron({ C: 1.04, gamma: 1, initial_phase: 0 });
+  var n1 = network.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0.9 });
+  var n2 = network.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0 });
 
   n1.connect(n2, 0.3, 0.1);
 
   simulator.initialize(network);
   simulator.start(0.5, function() {
     equals(n1.current_phase(0.5), 0.4);
-    almost_equals(n2.current_phase(0.5), 0.6548363777407726);
+    almost_equals(n2.current_phase(0.5), 0.6340955187551487);
     almost_equals(n2.last_spike.time, 0.4);
     equals(simulator.past_events.length, 3);
 
@@ -374,8 +374,8 @@ asyncTest("simulating dynamics of single transmitted spike", function() {
 
 asyncTest("simulating dynamics of two consequtive spikes sent to one neuron", function() {
   network = new Network();
-  var n1 = network.new_neuron({ C: 1.04, gamma: 1, initial_phase: 0.9 });
-  var n2 = network.new_neuron({ C: 1.04, gamma: 1, initial_phase: 0 });
+  var n1 = network.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0.9 });
+  var n2 = network.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0 });
 
   n1.connect(n2, 0.3, 0.2);
 
@@ -393,9 +393,9 @@ asyncTest("simulating dynamics of two consequtive spikes sent to one neuron", fu
 asyncTest("simulating dynamics of two neurons in different sub networks", function() {
   network = new Network();
   var net1 = network.new_sub_network("a");
-  var n1 = net1.new_neuron({ C: 1.04, gamma: 1, initial_phase: 0.9 });
+  var n1 = net1.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0.9 });
   var net2 = network.new_sub_network("b");
-  var n2 = net2.new_neuron({ C: 1.04, gamma: 1, initial_phase: 0 });
+  var n2 = net2.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0 });
 
   n1.connect(n2, 0.3, 0.2);
 
