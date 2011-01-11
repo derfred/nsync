@@ -10,7 +10,7 @@ This package implements a JavaScript based simulator for the pulse coupled neura
 Includes some basic visualization and the ability to interactively perturb individual neurons.
 
 1. Download
-2. Open index.html in a modern browser (tested in Firefox 3.5 and Chrome 6)
+2. Open examples/html/index.html in a modern browser (tested in Firefox 3.5 and Chrome 6)
 3. pure bliss
 
 
@@ -24,4 +24,4 @@ Run Tests in node.js
 --------------------
 
 1. install kof/node-qunit
-2. cli -c base.js -t tests/test_base.js
+2. cli -c src/base.js -t tests/test_base.js

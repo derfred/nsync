@@ -6,7 +6,7 @@ if(typeof window == "undefined") {
     require("util").log(msg);
   }
   //log("no window")
-  var base = require("../base.js");
+  var base = require("../src/base.js");
   var EventQueue = base.EventQueue;
   var merge = base.merge;
 
