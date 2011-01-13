@@ -98,7 +98,7 @@ simulator.add_observer(new PoincareObserver());
 // initialize the simulator, this allows you to reuse the simulator object
 simulator.initialize(network);
 
-// now start the simulation and let it run for 200 time steps
+// now start the simulation and let it run for 500 time steps
 simulator.start(500, function() {
   // any code here will be called after the simulation has completed
 });
