@@ -254,8 +254,7 @@ Neuron.prototype.connect = function(post_synaptic, delay, strength, label) {
   });
 }
 
-Neuron.prototype.receive_spike = function(current_time, strength) {
-  var new_phase = this.phase_jump(this.current_phase(current_time), strength);
+Neuron.prototype.update_phase = function(current_time, new_phase) {
   if(isNaN(new_phase) || new_phase > 1) {
     this.set_phase(current_time, 0);
     return true;
@@ -263,6 +262,15 @@ Neuron.prototype.receive_spike = function(current_time, strength) {
     this.set_phase(current_time, Math.max(0, new_phase));
     return false;
   }
+}
+
+Neuron.prototype.receive_spike = function(current_time, strength) {
+  var new_phase = this.phase_jump(this.current_phase(current_time), strength);
+  return this.update_phase(current_time, new_phase);
+}
+
+Neuron.prototype.receive_phase_shift = function(current_time, phase_shift) {
+  return this.update_phase(current_time, this.current_phase(current_time) + phase_shift);
 }
 
 Neuron.prototype.phase_jump = function(current_phase, strength) {
@@ -487,7 +495,7 @@ NetworkDynamicsObserver.prototype.event_reset = function(simulator, options) {
   }
 }
 
-NetworkDynamicsObserver.prototype.event_spike = function(simulator, options) {
+NetworkDynamicsObserver.prototype.interact_with_neuron = function(simulator, options, callback) {
   var reset_event_index = simulator.event_queue.find_next_event_index(function(evt) {
     return evt.type == "reset" && evt.options.recipient == event.options.recipient;
   });
@@ -496,13 +504,24 @@ NetworkDynamicsObserver.prototype.event_spike = function(simulator, options) {
   }
 
   // because of rounding errors the effect of a spike causing a reset needs to be handled explicitly
-  var fired = options.recipient.receive_spike(simulator.current_time, options.strength);
-  if(fired) {
+  if(callback()) {
     simulator.propagate_event("reset", { recipient: options.recipient });
   } else {
     var next_reset = options.recipient.next_reset(simulator.current_time);
     simulator.new_event(next_reset, "reset", {recipient: options.recipient});
   }
+}
+
+NetworkDynamicsObserver.prototype.event_phase_shift = function(simulator, options) {
+  this.interact_with_neuron(simulator, options, function() {
+    return options.recipient.receive_phase_shift(simulator.current_time, options.phase_shift);
+  });
+}
+
+NetworkDynamicsObserver.prototype.event_spike = function(simulator, options) {
+  this.interact_with_neuron(simulator, options, function() {
+    return options.recipient.receive_spike(simulator.current_time, options.strength);
+  });
 }
 
 NetworkDynamicsObserver.prototype.event_stop = function(simulator, options) {

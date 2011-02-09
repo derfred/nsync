@@ -397,6 +397,20 @@ asyncTest("simulating dynamics of single transmitted spike", function() {
   });
 });
 
+asyncTest("simulating dynamics of single phase shift spike", 2, function() {
+  network = new Network();
+  neuron = network.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0 });
+
+  simulator.initialize(network);
+  simulator.new_event(0.3, "phase_shift", {recipient: neuron, phase_shift: 0.2})
+  simulator.start(0.5, function() {
+    equals(neuron.current_phase(0.5), 0.7);
+    equals(simulator.past_events.length, 2);
+
+    start();
+  });
+});
+
 asyncTest("simulating dynamics of two consequtive spikes sent to one neuron", function() {
   network = new Network();
   var n1 = network.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0.9 });
