@@ -244,12 +244,13 @@ Neuron.prototype.set_phase = function(current_time, phase) {
   this.last_spike = {time: current_time, phase: Math.max(0, phase)};
 }
 
-Neuron.prototype.connect = function(post_synaptic, delay, strength) {
+Neuron.prototype.connect = function(post_synaptic, delay, strength, label) {
   this.connections.push({
     pre_synaptic: this,
     post_synaptic: post_synaptic,
     delay: delay,
-    strength: strength
+    strength: strength,
+    label: label
   });
 }
 
@@ -480,7 +481,8 @@ NetworkDynamicsObserver.prototype.event_reset = function(simulator, options) {
     simulator.new_event(simulator.current_time+neuron.connections[i].delay, "spike", {
       sender: neuron,
       recipient: neuron.connections[i].post_synaptic,
-      strength: neuron.connections[i].strength
+      strength: neuron.connections[i].strength,
+      label: neuron.connections[i].label
     });
   }
 }

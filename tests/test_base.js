@@ -130,6 +130,12 @@ test("connecting to other neurons", function() {
   equals(neuron.connections[0].post_synaptic, n2);
 });
 
+test("labelling connections", function() {
+  var n2 = new Neuron({ C: 1.04, gamma: 1 });
+  neuron.connect(n2, 0.3, 0.4, "inter");
+  equals(neuron.connections[0].label, "inter");
+});
+
 
 module("Network", {
   setup: function() {
@@ -335,6 +341,25 @@ asyncTest("adding observers", 2, function() {
   simulator.add_observer(new TestObserver());
   simulator.initialize(network);
   simulator.start(1, function() {
+    start();
+  });
+});
+
+asyncTest("spike labelling", 3, function() {
+  function SpikeLabelObserver() {}
+  SpikeLabelObserver.prototype.event_spike = function(_simulator, _options) {
+    almost_equals(_simulator.current_time, 0.4);
+    equals(_options.label, "gnu");
+    equals(_options.strength, 0.5);
+  }
+
+  network = new Network();
+  neuron = network.new_neuron({ initial_phase: 0.9 });
+  neuron.connect(neuron, 0.3, 0.5, "gnu");
+
+  simulator.add_observer(new SpikeLabelObserver());
+  simulator.initialize(network);
+  simulator.start(0.5, function() {
     start();
   });
 });
