@@ -35,6 +35,14 @@ function defer(callback, waittime) {
 
 export("merge", merge);
 
+
+function get_time() {
+  return (new Date()).getTime();
+}
+
+export("get_time", get_time);
+
+
 if(typeof(Function.prototype.bind) != "function") {
   Function.prototype.bind = function(self, var_args) {
     var thisFunc = this;
