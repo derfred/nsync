@@ -317,6 +317,15 @@ Event.prototype.toString = function() {
   if(this.options.recipient) {
     result += ("\trecipient: " + this.options.recipient.id);
   }
+  if(this.options.sender) {
+    result += ("\tsender: " + this.options.sender.id);
+  }
+  if(this.options.senders) {
+    result += "\tsenders:"
+    for(var i=0;i<this.options.senders.length;i++) {
+      result += (" "+this.options.senders[i].id);
+    }
+  }
   return result;
 }
 
@@ -470,12 +479,22 @@ NetworkDynamicsObserver.prototype.add_event = function(event, event_queue) {
                 Math.abs(evt.time - event.time) < min_spike_seperation;
     });
     if(existing_event) {
-      existing_event.options.strength += event.options.strength;
+      this.combine_spikes(existing_event, event);
     } else {
       event_queue.add_event(event);
     }
   } else {
     event_queue.add_event(event);
+  }
+}
+
+NetworkDynamicsObserver.prototype.combine_spikes = function(existing_event, new_event) {
+  existing_event.options.strength += new_event.options.strength;
+  if(existing_event.options.senders) {
+    existing_event.options.senders.push(new_event.options.sender);
+  } else {
+    existing_event.options.senders = [existing_event.options.sender, new_event.options.sender]
+    delete existing_event.options.sender;
   }
 }
 

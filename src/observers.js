@@ -94,6 +94,15 @@ ResetObserver.prototype.event_reset = function(simulator, options) {
   }
 }
 
+ResetObserver.prototype.find_in_log = function(predicate) {
+  for (var i=0; i < this.log.length; i++) {
+    var log_event = this.log[i];
+    if(predicate(log_event)) {
+      return log_event;
+    }
+  };
+}
+
 ResetObserver.prototype.collate_log = function() {
   var result = [];
   for(var i=0;i<this.log.length;i++) {
