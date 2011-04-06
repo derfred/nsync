@@ -115,5 +115,38 @@ ResetObserver.prototype.write_to_file = function(filename) {
   fs.writeFile(filename, this.collate_log());
 }
 
-exports.ResetObserver = ResetObserver;
+ResetObserver.prototype.matching_synced_event = function(log, evt, expected, delta) {
+  var result = [];
+  for(var i=0;i<log.length;i++) {
+    if(log[i].neuron != evt.neuron && Math.abs(log[i].time-evt.time) < delta) {
+      result.push(log[i]);
+    }
+  }
 
+  if(result.length == 1) {
+    return result[0].neuron == expected;
+  } else if(result.length == 0) {
+    return expected == undefined;
+  } else {
+    return false
+  }
+}
+
+ResetObserver.prototype.sync_rules_satisfied = function(rules, search_window, padding) {
+  if(!padding)
+    padding = 10;
+
+  var to_search = this.log.slice(search_window[0], search_window[1]);
+  var to_check  = to_search.slice(padding, -padding);
+
+  var result = true;
+  for(var i=0;i<to_check.length;i++) {
+    var evt = to_check[i];
+    if(!this.matching_synced_event(to_search, evt, rules[evt.neuron.id], 0.001)) {
+      return false;
+    }
+  }
+  return result;
+}
+
+exports.ResetObserver = ResetObserver;
