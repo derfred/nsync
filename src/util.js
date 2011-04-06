@@ -193,3 +193,9 @@ function print_event_table(simulator, reset_observers, from, to) {
 }
 
 export("print_event_table", print_event_table);
+
+function get_time() {
+  return (new Date()).getTime();
+}
+
+export("get_time", get_time);
