@@ -79,11 +79,17 @@ module("Neuron", {
 });
 
 var neuron;
+var standard_period = 3.2580965380214812;
 
 test("initializing", function() {
   neuron.initial_phase = 0.5;
   neuron.initialize(0);
   equals(neuron.current_phase(0), 0.5);
+});
+
+test("calculating time scale", function() {
+  equals(neuron.T(), standard_period);
+  equals((new Neuron({ I: 1.25, gamma: 1 })).T(), 1.6094379124341003);
 });
 
 test("receiving reset sets phase to zero", function() {
