@@ -4,11 +4,15 @@ function export(name, type) {
   }
 }
 
-function PostResetPerturber(neuron, strength, time) {
+function PostResetPerturber(neuron, strength, time, offset) {
   this.neuron = neuron;
   this.strength = strength;
   this.time = time;
   this.fired = false;
+  this.offset = offset;
+  if(!this.offset) {
+    this.offset = 0;
+  }
 }
 
 PostResetPerturber.prototype.event_reset = function(simulator, options) {
