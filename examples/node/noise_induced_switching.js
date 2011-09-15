@@ -78,12 +78,6 @@ var a = 0;
 var b = 0.9;
 var c = 0.1;
 
-// var a = Math.random();
-// var b = Math.random();
-// var c = Math.random();
-// 0.64194226404652 0.9723297571763396 0.0807662180159241
-// console.log(a, b, c)
-
 network.neurons[0].initial_phase = a;
 network.neurons[1].initial_phase = b;
 network.neurons[2].initial_phase = b;
