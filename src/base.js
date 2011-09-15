@@ -241,11 +241,11 @@ Neuron.prototype.reset = function(current_time) {
 }
 
 Neuron.prototype.next_reset = function(current_time) {
-  return current_time + 1 - this.current_phase(current_time);
+  return current_time + (1 - this.current_phase(current_time))*this.T();
 }
 
 Neuron.prototype.current_phase = function(current_time) {
-  return current_time - this.last_spike.time + this.last_spike.phase;
+  return (current_time - this.last_spike.time)/this.T() + this.last_spike.phase;
 }
 
 Neuron.prototype.set_phase = function(current_time, phase) {

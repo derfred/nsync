@@ -63,7 +63,7 @@ PoincareObserver.prototype.event_reset = function(simulator, options) {
 **  Generate a fully connected network containing 5 neurons
 */
 var network = base.Network.fully_connected(5, {
-  delay: 0.49,
+  delay: 0.5,
   strength: 0.025,
   I: 1.04,
   gamma: 1
@@ -74,9 +74,15 @@ var network = base.Network.fully_connected(5, {
 ** These values are are chosen to illustrate partial synchrony.
 ** Using random initial phases will give qualitatively similar results.
 */
-var a = 0; //Math.random();
-var b = 0.49; //Math.random();
-var c = 0.11; //Math.random();
+var a = 0;
+var b = 0.9;
+var c = 0.1;
+
+// var a = Math.random();
+// var b = Math.random();
+// var c = Math.random();
+// 0.64194226404652 0.9723297571763396 0.0807662180159241
+// console.log(a, b, c)
 
 network.neurons[0].initial_phase = a;
 network.neurons[1].initial_phase = b;
@@ -90,7 +96,7 @@ network.neurons[4].initial_phase = c;
 var simulator = new base.Simulator(0);
 
 // add a noise source, which starts operating at time step 60, for the other params see src/base.js
-simulator.add_observer(new base.PoissonNoiseGenerator(50, 0.0000000001, {start_time: 60}));
+simulator.add_observer(new base.PoissonNoiseGenerator(50, 0.0000001, {start_time: 60}));
 
 // hook in the observer, defined above, which will record the data
 simulator.add_observer(new PoincareObserver());
@@ -99,6 +105,6 @@ simulator.add_observer(new PoincareObserver());
 simulator.initialize(network);
 
 // now start the simulation and let it run for 500 time steps
-simulator.start(500, function() {
+simulator.start(2000, function() {
   // any code here will be called after the simulation has completed
 });
