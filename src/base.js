@@ -573,7 +573,12 @@ Simulator.prototype.add_observer = function(observer) {
 }
 
 Simulator.prototype.propagate_event = function(type, options) {
-  
+  // call before event observers
+  for(var j=0;j<this.observers.length;j++) {
+    if(typeof(this.observers[j]["before_"+type]) == "function") {
+      this.observers[j]["before_"+type](this, options);
+    }
+  }
 
   this.events_to_notify.push({type: type, options: options});
 
