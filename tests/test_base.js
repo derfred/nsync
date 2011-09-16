@@ -427,8 +427,8 @@ asyncTest("simulating dynamics of two consequtive spikes sent to one neuron", fu
   simulator.initialize(network);
   simulator.start(1.5*n1.T(), function() {
     almost_equals(network.neurons[0].current_phase(1.5*n1.T()), 0.4);
-    almost_equals(network.neurons[1].current_phase(1.5*n1.T()), 0.1);
-    almost_equals(network.neurons[1].last_spike.time, 1.4*n1.T());
+    almost_equals(network.neurons[1].current_phase(1.5*n1.T()), 0.8897651188987299);
+    almost_equals(network.neurons[1].last_spike.time, 1.1*n1.T()+0.3);
     equals(simulator.past_events.length, 6);
 
     start();
@@ -445,10 +445,10 @@ asyncTest("simulating dynamics of two neurons in different sub networks", functi
   n1.connect(n2, 0.3, 0.2);
 
   simulator.initialize(network);
-  simulator.start(1.5, function() {
-    almost_equals(net1.neurons[0].current_phase(1.5), 0.4);
-    almost_equals(net2.neurons[0].current_phase(1.5), 0.1);
-    almost_equals(net2.neurons[0].last_spike.time, 1.4);
+  simulator.start(1.5*n1.T(), function() {
+    almost_equals(net1.neurons[0].current_phase(1.5*n1.T()), 0.4);
+    almost_equals(net2.neurons[0].current_phase(1.5*n1.T()), 0.8897651188987299);
+    almost_equals(net2.neurons[0].last_spike.time, 1.1*n1.T()+0.3);
     equals(simulator.past_events.length, 6);
 
     start();
