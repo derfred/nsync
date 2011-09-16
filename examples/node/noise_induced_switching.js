@@ -7,7 +7,7 @@
 **
 **  This simulation will show how partially synchronized clusters can persist in a fully connected network
 **  with homogenous connections. Furthermore adding noise to such a set up will induce persistent switching
-**  between states of partial synchrony while preserving the symmetry (S2xS2xS1
+**  between states of partial synchrony while preserving the symmetry (S2xS2xS1)
 **
 **  The script will output data in the following format
 **     1,1,0.49
