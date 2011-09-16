@@ -351,6 +351,35 @@ asyncTest("adding observers", 2, function() {
   });
 });
 
+asyncTest("observers should receive events after all events for the current time have been processed", 4, function() {
+  function TestObserver(sender, receivers) {
+    this.sender = sender;
+    this.receivers = receivers;
+  }
+
+  TestObserver.prototype.event_reset = function(_simulator, options) {
+    if(options.recipient != sender) {
+      for(i=0;i<this.receivers.length;i++) {
+        equals(this.receivers[i].current_phase(_simulator.current_time), 0);
+      }
+    }
+  }
+
+  network = new Network();
+  var sender = network.new_neuron({ initial_phase: 0.9, I: 1.04, gamma: 1 });
+  var receiver1 = network.new_neuron({ initial_phase: 0.1, I: 1.04, gamma: 1 });
+  var receiver2 = network.new_neuron({ initial_phase: 0.1, I: 1.04, gamma: 1 });
+
+  sender.connect(receiver1, 0.3, 0.8);
+  sender.connect(receiver2, 0.3, 0.8);
+
+  simulator.add_observer(new TestObserver(sender, [receiver1, receiver2]));
+  simulator.initialize(network);
+  simulator.start(2, function() {
+    start();
+  });
+});
+
 asyncTest("spike labelling", 3, function() {
   function SpikeLabelObserver() {}
   SpikeLabelObserver.prototype.event_spike = function(_simulator, _options) {
