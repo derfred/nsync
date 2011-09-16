@@ -573,11 +573,14 @@ Simulator.prototype.add_observer = function(observer) {
 }
 
 Simulator.prototype.propagate_event = function(type, options) {
-  for(var i=0;i<this.observers.length;i++) {
-    if(typeof(this.observers[i]["event_"+type]) == "function") {
-      this.observers[i]["event_"+type](this, options);
+  // call before event observers
+  for(var j=0;j<this.observers.length;j++) {
+    if(typeof(this.observers[j]["before_"+type]) == "function") {
+      this.observers[j]["before_"+type](this, options);
     }
   }
+
+  this.events_to_notify.push({type: type, options: options});
 
   // make sure dynamics happen after the observers, otherwise the
   // events propagated to the observers might be in the wrong order
@@ -588,14 +591,29 @@ Simulator.prototype.propagate_event = function(type, options) {
   }
 }
 
+Simulator.prototype.notify_observers = function() {
+  for(var i=0;i<this.events_to_notify.length;i++) {
+    var evt = this.events_to_notify[i];
+    for(var j=0;j<this.observers.length;j++) {
+      if(typeof(this.observers[j]["event_"+evt.type]) == "function") {
+        this.observers[j]["event_"+evt.type](this, evt.options);
+      }
+    }
+  }
+
+  this.events_to_notify = [];
+}
+
 Simulator.prototype.initialize = function(network) {
   this.network = network;
 
   this.current_time = 0.0;
   this.event_queue.clear();
   this.past_events = [];
+  this.events_to_notify = [];
 
   this.propagate_event("initialize");
+  this.notify_observers();
 }
 
 Simulator.prototype.reset = function() {
@@ -612,6 +630,10 @@ Simulator.prototype.execute_event = function(evt) {
     this.propagate_event(event.type, event.options);
 
     var event = this.event_queue.pop_next_event();
+    if(!event || event.time>this.current_time) {
+      this.notify_observers();
+    }
+
     if(event) {
       this.execute_event(event);
     }

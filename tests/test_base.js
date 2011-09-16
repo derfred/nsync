@@ -79,11 +79,17 @@ module("Neuron", {
 });
 
 var neuron;
+var standard_period = 3.2580965380214812;
 
 test("initializing", function() {
   neuron.initial_phase = 0.5;
   neuron.initialize(0);
   equals(neuron.current_phase(0), 0.5);
+});
+
+test("calculating time scale", function() {
+  equals(neuron.T(), standard_period);
+  equals((new Neuron({ I: 1.25, gamma: 1 })).T(), 1.6094379124341003);
 });
 
 test("receiving reset sets phase to zero", function() {
@@ -345,6 +351,56 @@ asyncTest("adding observers", 2, function() {
   });
 });
 
+asyncTest("observers should receive events after all events for the current time have been processed", 4, function() {
+  function TestObserver(sender, receivers) {
+    this.sender = sender;
+    this.receivers = receivers;
+  }
+
+  TestObserver.prototype.event_reset = function(_simulator, options) {
+    if(options.recipient != sender) {
+      for(i=0;i<this.receivers.length;i++) {
+        equals(this.receivers[i].current_phase(_simulator.current_time), 0);
+      }
+    }
+  }
+
+  network = new Network();
+  var sender = network.new_neuron({ initial_phase: 0.9, I: 1.04, gamma: 1 });
+  var receiver1 = network.new_neuron({ initial_phase: 0.1, I: 1.04, gamma: 1 });
+  var receiver2 = network.new_neuron({ initial_phase: 0.1, I: 1.04, gamma: 1 });
+
+  sender.connect(receiver1, 0.3, 0.8);
+  sender.connect(receiver2, 0.3, 0.8);
+
+  simulator.add_observer(new TestObserver(sender, [receiver1, receiver2]));
+  simulator.initialize(network);
+  simulator.start(2, function() {
+    start();
+  });
+});
+
+asyncTest("before event listeners", 2, function() {
+  function TestObserver() {}
+  TestObserver.prototype.before_spike = function(_simulator, options) {
+    ok(options.recipient.current_phase(_simulator.current_time) > 0.1);
+  }
+
+  network = new Network();
+  var sender = network.new_neuron({ initial_phase: 0.9, I: 1.04, gamma: 1 });
+  var receiver1 = network.new_neuron({ initial_phase: 0.1, I: 1.04, gamma: 1 });
+  var receiver2 = network.new_neuron({ initial_phase: 0.1, I: 1.04, gamma: 1 });
+
+  sender.connect(receiver1, 0.3, 0.8);
+  sender.connect(receiver2, 0.3, 0.8);
+
+  simulator.add_observer(new TestObserver(sender, [receiver1, receiver2]));
+  simulator.initialize(network);
+  simulator.start(2, function() {
+    start();
+  });
+});
+
 asyncTest("spike labelling", 3, function() {
   function SpikeLabelObserver() {}
   SpikeLabelObserver.prototype.event_spike = function(_simulator, _options) {
@@ -421,8 +477,8 @@ asyncTest("simulating dynamics of two consequtive spikes sent to one neuron", fu
   simulator.initialize(network);
   simulator.start(1.5*n1.T(), function() {
     almost_equals(network.neurons[0].current_phase(1.5*n1.T()), 0.4);
-    almost_equals(network.neurons[1].current_phase(1.5*n1.T()), 0.1);
-    almost_equals(network.neurons[1].last_spike.time, 1.4*n1.T());
+    almost_equals(network.neurons[1].current_phase(1.5*n1.T()), 0.8897651188987299);
+    almost_equals(network.neurons[1].last_spike.time, 1.1*n1.T()+0.3);
     equals(simulator.past_events.length, 6);
 
     start();
@@ -439,10 +495,10 @@ asyncTest("simulating dynamics of two neurons in different sub networks", functi
   n1.connect(n2, 0.3, 0.2);
 
   simulator.initialize(network);
-  simulator.start(1.5, function() {
-    almost_equals(net1.neurons[0].current_phase(1.5), 0.4);
-    almost_equals(net2.neurons[0].current_phase(1.5), 0.1);
-    almost_equals(net2.neurons[0].last_spike.time, 1.4);
+  simulator.start(1.5*n1.T(), function() {
+    almost_equals(net1.neurons[0].current_phase(1.5*n1.T()), 0.4);
+    almost_equals(net2.neurons[0].current_phase(1.5*n1.T()), 0.8897651188987299);
+    almost_equals(net2.neurons[0].last_spike.time, 1.1*n1.T()+0.3);
     equals(simulator.past_events.length, 6);
 
     start();
