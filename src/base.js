@@ -290,11 +290,11 @@ Neuron.prototype.T = function() {
 }
 
 Neuron.prototype.f = function(phase) {
-  return this.I/this.gamma * (1 - Math.exp(-phase*this.T()))
+  return this.I/this.gamma * (1 - Math.exp(-(phase*this.gamma*this.T())));
 },
 
-Neuron.prototype.g = function(x) {
-  return -(1/this.T()) * Math.log(1 - x*this.gamma/this.I);
+Neuron.prototype.g = function(potential) {
+  return (1/(this.T()*this.gamma)) * Math.log(this.I/(this.I-this.gamma*potential));
 }
 
 export("Neuron", Neuron);
