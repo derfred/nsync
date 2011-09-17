@@ -241,7 +241,8 @@ Neuron.prototype.reset = function(current_time) {
 }
 
 Neuron.prototype.next_reset = function(current_time) {
-  return current_time + (1 - this.current_phase(current_time))*this.T();
+  return current_time + this.T() - Math.log(1-this.f(this.current_phase(current_time)))/this.gamma;
+//  return current_time + (1 - this.current_phase(current_time))*this.T();
 }
 
 Neuron.prototype.current_phase = function(current_time) {
@@ -346,13 +347,7 @@ EventQueue.prototype.empty = function() {
 
 EventQueue.prototype.sort_queue = function() {
   this.events.sort(function(a, b) {
-    if(a.time == b.time && a.options.recipient && b.options.recipient) {
-      var a_id = parseInt(a.options.recipient.id.replace(/\D/, ""));
-      var b_id = parseInt(b.options.recipient.id.replace(/\D/, ""));
-      return a_id-b_id;
-    } else {
-      return a.time-b.time;
-    }
+    return a.time-b.time;
   });
 }
 
