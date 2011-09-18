@@ -430,6 +430,27 @@ asyncTest("simulating free dynamics of single neuron", 2, function() {
   });
 });
 
+asyncTest("changing driving current", 3, function() {
+  network = new Network();
+  var neuron = network.new_neuron(merge(Network.default_options, {
+    initial_phase: 0
+  }));
+  simulator.initialize(network);
+
+  simulator.new_event(1.6, "properties", {
+    recipient: neuron,
+    options: { I: 2 }
+  });
+
+  simulator.start(3, function() {
+    almost_equals(neuron.last_potential.time, 2.4501273211545636);
+    equals(neuron.I, 2);
+    equals(simulator.past_events.length, 4);
+
+    start();
+  });
+});
+
 asyncTest("simulating dynamics of single transmitted spike", function() {
   network = new Network();
   var n1 = network.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0.9 });
