@@ -8,6 +8,7 @@ This package implements a JavaScript based simulator for pulse coupled neural ne
 > http://www.nld.ds.mpg.de/downloads/publications/p1570_1.pdf
 
 The algorithm is based on the concept of numerically exact integration as presented in:
+
 > Rotter S and Diesmann M. Exact Digital Simulation of Time-Invariant Linear Systems
 > with Applications to Neuronal Modeling. Biological Cybernetics 81:381-402 (1999)
 > http://www.springerlink.com/content/08legf57tjkc6nj0 (no publically available version)
