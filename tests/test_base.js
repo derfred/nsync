@@ -84,7 +84,7 @@ var standard_period = 3.2580965380214812;
 test("initializing", function() {
   neuron.initial_phase = 0.5;
   neuron.initialize(0);
-  equals(neuron.current_phase(0), 0.5);
+  almost_equals(neuron.current_phase(0), 0.5);
 });
 
 test("calculating time scale", function() {
@@ -100,7 +100,7 @@ test("receiving reset sets phase to zero", function() {
 
 test("receiving spike will cause phase jump", function() {
   neuron.receive_spike(0.2*neuron.T(), 0.1);
-  equals(neuron.current_phase(0.2*neuron.T()), 0.26259348106668534);
+  almost_equals(neuron.current_phase(0.2*neuron.T()), 0.26259348106668534);
 });
 
 test("receiving reset after spike will reset phase to zero", function() {
@@ -109,24 +109,19 @@ test("receiving reset after spike will reset phase to zero", function() {
   almost_equals(neuron.current_phase(0.8+0.2*neuron.T()), 0.2);
 });
 
-test("receiving spike will not set phase beyond 1", function() {
-  neuron.receive_spike(0.9*neuron.T(), 0.5);
-  almost_equals(neuron.current_phase(0.9*neuron.T()), 0);
-  almost_equals(neuron.current_phase(neuron.T()), 0.1);
-});
-
-test("receiving spike will not set phase below 0", function() {
-  neuron.receive_spike(0.1*neuron.T(), -0.5);
-  almost_equals(neuron.current_phase(0.1*neuron.T()), 0);
-  almost_equals(neuron.current_phase(0.2*neuron.T()), 0.1);
-});
-
 test("receiving sub threshold spike will not signal reset", function() {
   ok(!neuron.receive_spike(0.1, 0.1));
 });
 
 test("receiving supra threshold spike will signal reset", function() {
   ok(neuron.receive_spike(0.9, 0.5));
+});
+
+test("calculating time of next reset", function() {
+  almost_equals(neuron.next_reset(0), neuron.T());
+  almost_equals(neuron.next_reset(neuron.T()/2), neuron.T());
+  neuron.set_phase(0, 0.5);
+  almost_equals(neuron.next_reset(0), neuron.T()/2);
 });
 
 test("connecting to other neurons", function() {
@@ -446,7 +441,7 @@ asyncTest("simulating dynamics of single transmitted spike", function() {
   simulator.start(0.5*n1.T(), function() {
     equals(n1.current_phase(0.5*n1.T()), 0.4);
     almost_equals(n2.current_phase(0.5*n1.T()), 0.5608294484932627);
-    almost_equals(n2.last_spike.time, 0.1*n1.T()+0.3);
+    almost_equals(n2.last_potential.time, 0.1*n1.T()+0.3);
     equals(simulator.past_events.length, 3);
 
     start();
@@ -478,7 +473,7 @@ asyncTest("simulating dynamics of two consequtive spikes sent to one neuron", fu
   simulator.start(1.5*n1.T(), function() {
     almost_equals(network.neurons[0].current_phase(1.5*n1.T()), 0.4);
     almost_equals(network.neurons[1].current_phase(1.5*n1.T()), 0.8897651188987299);
-    almost_equals(network.neurons[1].last_spike.time, 1.1*n1.T()+0.3);
+    almost_equals(network.neurons[1].last_potential.time, 1.1*n1.T()+0.3);
     equals(simulator.past_events.length, 6);
 
     start();
@@ -498,7 +493,7 @@ asyncTest("simulating dynamics of two neurons in different sub networks", functi
   simulator.start(1.5*n1.T(), function() {
     almost_equals(net1.neurons[0].current_phase(1.5*n1.T()), 0.4);
     almost_equals(net2.neurons[0].current_phase(1.5*n1.T()), 0.8897651188987299);
-    almost_equals(net2.neurons[0].last_spike.time, 1.1*n1.T()+0.3);
+    almost_equals(net2.neurons[0].last_potential.time, 1.1*n1.T()+0.3);
     equals(simulator.past_events.length, 6);
 
     start();

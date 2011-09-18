@@ -226,9 +226,9 @@ export("Network", Network);
 
 
 function Neuron(options) {
-  this.initial_phase = options.initial_phase != undefined ? options.initial_phase : Math.random();
   this.gamma = options.gamma;
   this.I = options.I;
+  this.initial_phase = this.g(options.initial_phase != undefined ? options.initial_phase : Math.random());
   this.connections = [];
 };
 
@@ -237,21 +237,28 @@ Neuron.prototype.initialize = function(current_time) {
 }
 
 Neuron.prototype.reset = function(current_time) {
-  this.set_phase(current_time, 0);
+  this.set_potential(current_time, 0);
 }
 
-Neuron.prototype.next_reset = function(current_time) {
-  return current_time + this.T() - Math.log(1-this.f(this.current_phase(current_time)))/this.gamma;
-//  return current_time + (1 - this.current_phase(current_time))*this.T();
+Neuron.prototype.next_reset = function() {
+  return this.last_potential.time + Math.log( (this.I-this.gamma*this.last_potential.potential)/(this.I-this.gamma)  );
 }
 
 Neuron.prototype.current_phase = function(current_time) {
-  return (current_time - this.last_spike.time)/this.T() + this.last_spike.phase;
+  return this.g(this.current_potential(current_time));
+}
+
+Neuron.prototype.current_potential = function(current_time) {
+  return (1/this.gamma)*(this.I-(this.I-this.gamma*this.last_potential.potential)*Math.exp(-this.gamma*(current_time-this.last_potential.time)) );
+}
+
+Neuron.prototype.set_potential = function(current_time, potential) {
+  this.last_potential = {time: current_time, potential: potential};
 }
 
 Neuron.prototype.set_phase = function(current_time, phase) {
-  this.last_spike = {time: current_time, phase: Math.max(0, phase)};
-}
+  this.set_potential(current_time, this.f(phase));
+};
 
 Neuron.prototype.connect = function(post_synaptic, delay, strength, label) {
   this.connections.push({
@@ -263,23 +270,22 @@ Neuron.prototype.connect = function(post_synaptic, delay, strength, label) {
   });
 }
 
-Neuron.prototype.update_phase = function(current_time, new_phase) {
-  if(isNaN(new_phase) || new_phase > 1) {
-    this.set_phase(current_time, 0);
+Neuron.prototype.update_potential = function(current_time, new_potential) {
+  if(isNaN(new_potential) || new_potential > 1) {
+    this.set_potential(current_time, 0);
     return true;
   } else {
-    this.set_phase(current_time, Math.max(0, new_phase));
+    this.set_potential(current_time, new_potential);
     return false;
   }
 }
 
 Neuron.prototype.receive_spike = function(current_time, strength) {
-  var new_phase = this.phase_jump(this.current_phase(current_time), strength);
-  return this.update_phase(current_time, new_phase);
+  return this.update_potential(current_time, strength+this.current_potential(current_time));
 }
 
 Neuron.prototype.receive_phase_shift = function(current_time, phase_shift) {
-  return this.update_phase(current_time, this.current_phase(current_time) + phase_shift);
+  return this.update_potential(current_time, this.f(this.current_phase(current_time)+phase_shift));
 }
 
 Neuron.prototype.phase_jump = function(current_phase, strength) {
@@ -291,11 +297,11 @@ Neuron.prototype.T = function() {
 }
 
 Neuron.prototype.f = function(phase) {
-  return this.I/this.gamma * (1 - Math.exp(-phase*this.T()))
+  return this.I/this.gamma * (1 - Math.exp(-(phase*this.gamma*this.T())));
 },
 
-Neuron.prototype.g = function(x) {
-  return -(1/this.T()) * Math.log(1 - x*this.gamma/this.I);
+Neuron.prototype.g = function(potential) {
+  return (1/(this.T()*this.gamma)) * Math.log(this.I/(this.I-this.gamma*potential));
 }
 
 export("Neuron", Neuron);
