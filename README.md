@@ -36,4 +36,4 @@ Run Tests in node.js
 --------------------
 
 1. install kof/node-qunit
-2. cli -c src/base.js -t tests/test_base.js
+2. cli -c ./src/base.js -t ./tests/test_base.js
