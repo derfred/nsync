@@ -5,7 +5,7 @@ if(typeof window == "undefined") {
   function log(msg) {
     require("util").log(msg);
   }
-  
+
   var base = require("../src/base.js"),
       util = require("../src/util.js");
   var EventQueue = base.EventQueue;
@@ -188,6 +188,20 @@ test("creating fully_connected network", function() {
   }
 });
 
+test("creating fully_connected with initial phases", function() {
+  var network = base.Network.fully_connected(5, {
+    strength: 0.025,
+    delay: 1.0,
+    initial_phases: [0,0.3,0.3,0.78,0.78]
+  });
+
+  equals(network.neurons[0].initial_phase, 0);
+  equals(network.neurons[1].initial_phase, 0.3);
+  equals(network.neurons[2].initial_phase, 0.3);
+  equals(network.neurons[3].initial_phase, 0.78);
+  equals(network.neurons[4].initial_phase, 0.78);
+});
+
 test("adding an empty sub network", function() {
   var sub_network = network.new_sub_network();
   equals(sub_network.constructor, Network);
@@ -334,7 +348,7 @@ asyncTest("adding observers", 2, function() {
     equals(_simulator.current_time, 0);
   }
   TestObserver.prototype.event_reset = function(_simulator) {
-    equals(_simulator.current_time, 0.5*neuron.T());
+    almost_equals(_simulator.current_time, 0.5*neuron.T());
   }
 
   network = new Network();
@@ -461,7 +475,7 @@ asyncTest("simulating dynamics of single transmitted spike", function() {
 
   simulator.initialize(network);
   simulator.start(0.5*n1.T(), function() {
-    equals(n1.current_phase(0.5*n1.T()), 0.4);
+    almost_equals(n1.current_phase(0.5*n1.T()), 0.4);
     almost_equals(n2.current_phase(0.5*n1.T()), 0.5608294484932627);
     almost_equals(n2.last_potential.time, 0.1*n1.T()+0.3);
     equals(simulator.past_events.length, 3);
@@ -477,7 +491,7 @@ asyncTest("simulating dynamics of single phase shift spike", 2, function() {
   simulator.initialize(network);
   simulator.new_event(0.3, "phase_shift", {recipient: neuron, phase_shift: 0.2})
   simulator.start(0.5*neuron.T(), function() {
-    equals(neuron.current_phase(0.5*neuron.T()), 0.7);
+    almost_equals(neuron.current_phase(0.5*neuron.T()), 0.7);
     equals(simulator.past_events.length, 2);
 
     start();
@@ -538,11 +552,11 @@ asyncTest("time limited run should take about 1s", 2, function() {
   var start_time = (new Date()).getTime();
   simulator.start(1, function() {
     ok(true, "callback happened");
-    
+
     var time_delta = (new Date()).getTime() - start_time;
     ok(time_delta > 900 && time_delta < 1500, "time difference not within expected window: actual="+time_delta);
   });
-  
+
   setTimeout(function() {
     start();
   }, 1500);

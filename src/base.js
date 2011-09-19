@@ -8,7 +8,7 @@ function log(msg) {
   if(typeof(require) != "undefined") {
     require("util").log(msg);
   } else {
-    
+
   }
 }
 
@@ -228,7 +228,7 @@ export("Network", Network);
 function Neuron(options) {
   this.gamma = options.gamma;
   this.I = options.I;
-  this.initial_phase = this.g(options.initial_phase != undefined ? options.initial_phase : Math.random());
+  this.initial_phase = options.initial_phase != undefined ? options.initial_phase : Math.random();
   this.connections = [];
 };
 
@@ -476,7 +476,7 @@ export("PoissonNoiseGenerator", PoissonNoiseGenerator);
 
 
 function NetworkDynamicsObserver() {
-  
+
 }
 
 NetworkDynamicsObserver.prototype.add_event = function(event, event_queue) {
@@ -484,7 +484,7 @@ NetworkDynamicsObserver.prototype.add_event = function(event, event_queue) {
     // spike for the same neuron seperated by by less than this amount are collated
     var min_spike_seperation = 10e-6;
     var existing_event = event_queue.find_next_event(function(evt) {
-      return evt.options.recipient == event.options.recipient && 
+      return evt.options.recipient == event.options.recipient &&
                 Math.abs(evt.time - event.time) < min_spike_seperation;
     });
     if(existing_event) {
