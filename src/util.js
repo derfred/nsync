@@ -53,6 +53,23 @@ function group_by(array, predicate) {
 
 export("group_by", group_by);
 
+
+function array_unique(array) {
+  var a = [];
+  var l = array.length;
+  for(var i=0; i<l; i++) {
+    for(var j=i+1; j<l; j++) {
+      // If this[i] is found later in the array
+      if (array[i] === array[j])
+        j = ++i;
+    }
+    a.push(array[i]);
+  }
+  return a;
+}
+
+export("array_unique", array_unique);
+
 function _map_method(array, method_or_property) {
   var result = [];
   for(var i=0;i<array.length;i++) {

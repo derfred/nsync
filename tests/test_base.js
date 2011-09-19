@@ -6,7 +6,8 @@ if(typeof window == "undefined") {
     require("util").log(msg);
   }
   
-  var base = require("../src/base.js");
+  var base = require("../src/base.js"),
+      util = require("../src/util.js");
   var EventQueue = base.EventQueue;
   var merge = base.merge;
 
@@ -546,3 +547,59 @@ asyncTest("time limited run should take about 1s", 2, function() {
     start();
   }, 1500);
 });
+
+
+
+module("Verify against analytic results", {
+  setup: function() {
+    simulator = new Simulator(0);
+  }
+});
+
+asyncTest("synchronous state is stable for inhibitory coupling", 4, function() {
+  var network = base.Network.fully_connected(5, {
+    strength: -0.025,
+    delay: 1.5,
+    initial_phases: [0,0,0,0,0]
+  });
+  simulator.initialize(network);
+
+  simulator.new_event(50, "spike", {
+    recipient: network.neurons[3],
+    strength: 0.01
+  })
+
+  simulator.start(2000, function() {
+    for(var i=1;i<network.neurons.length;i++) {
+      equals(network.neurons[i-1].current_phase(2000), network.neurons[i].current_phase(2000));
+    }
+
+    start();
+  });
+});
+
+asyncTest("synchronous state is unstable for excitatory coupling", 1, function() {
+  var network = base.Network.fully_connected(5, {
+    strength: 0.025,
+    delay: 1.5,
+    initial_phases: [0,0,0,0,0]
+  });
+  simulator.initialize(network);
+
+  simulator.new_event(50, "spike", {
+    recipient: network.neurons[3],
+    strength: 0.01
+  })
+
+  simulator.start(2000, function() {
+    var result = [];
+    for(var i=0;i<network.neurons.length;i++) {
+      result.push(network.neurons[i].current_phase(2000))
+    }
+
+    ok(util.array_unique(result).length > 1);
+
+    start();
+  });
+});
+
