@@ -75,8 +75,8 @@ var network = base.Network.fully_connected(5, {
 ** Using random initial phases will give qualitatively similar results.
 */
 var a = 0;
-var b = 0.9;
-var c = 0.1;
+var b = 0.8;
+var c = 0.4;
 
 network.neurons[0].initial_phase = a;
 network.neurons[1].initial_phase = b;
@@ -90,7 +90,7 @@ network.neurons[4].initial_phase = c;
 var simulator = new base.Simulator(0);
 
 // add a noise source, which starts operating at time step 60, for the other params see src/base.js
-simulator.add_observer(new base.PoissonNoiseGenerator(50, 0.0000001, {start_time: 60}));
+//simulator.add_observer(new base.PoissonNoiseGenerator(50, 0.0000001, {start_time: 60}));
 
 // hook in the observer, defined above, which will record the data
 simulator.add_observer(new PoincareObserver());
