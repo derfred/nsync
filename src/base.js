@@ -448,7 +448,7 @@ PoissonNoiseGenerator.prototype.event_initialize = function(simulator) {
   network.each_neuron(this.add_noise_event.bind(this, simulator));
 }
 
-PoissonNoiseGenerator.prototype.event_noise = function(simulator, options) {
+PoissonNoiseGenerator.prototype.before_noise = function(simulator, options) {
   // If multiple noise generators for different sub networks are present,
   // each generator needs to ensure to only operate on its sub network.
   var network = this.network ? this.network : simulator.network;
