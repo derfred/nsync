@@ -617,3 +617,30 @@ asyncTest("synchronous state is unstable for excitatory coupling", 1, function()
   });
 });
 
+asyncTest("switching between partially clustered states", 3, function() {
+  var network = base.Network.fully_connected(5, {
+    strength: 0.025,
+    delay: 1.5,
+    initial_phases: [0,0.4,0.4,0.8,0.8]
+  });
+  simulator.initialize(network);
+
+  simulator.new_event(50, "spike", {
+    recipient: network.neurons[2],
+    strength: 0.01
+  })
+
+  simulator.start(200, function() {
+    equals(network.neurons[0].current_phase(200), network.neurons[1].current_phase(200));
+    equals(network.neurons[3].current_phase(200), network.neurons[4].current_phase(200));
+
+    var result = [];
+    for(var i=0;i<network.neurons.length;i++) {
+      result.push(network.neurons[i].current_phase(200))
+    }
+
+    equals(util.array_unique(result).length, 3);
+
+    start();
+  });
+});
