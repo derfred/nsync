@@ -93,6 +93,11 @@ test("calculating time scale", function() {
   equals((new Neuron({ I: 1.25, gamma: 1 })).T(), 1.6094379124341003);
 });
 
+test("calculating time scale for sub critical driving current", function() {
+  neuron.gamma = 2;
+  equals(neuron.T(), undefined);
+});
+
 test("receiving reset sets phase to zero", function() {
   neuron.reset(1.5);
   equals(neuron.current_phase(1.5), 0);
@@ -123,6 +128,11 @@ test("calculating time of next reset", function() {
   almost_equals(neuron.next_reset(neuron.T()/2), neuron.T());
   neuron.set_phase(0, 0.5);
   almost_equals(neuron.next_reset(0), neuron.T()/2);
+});
+
+test("calculating time of next reset for sub-critical driving current", function() {
+  neuron.gamma = 2;
+  equals(neuron.next_reset(), undefined);
 });
 
 test("connecting to other neurons", function() {

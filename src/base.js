@@ -241,6 +241,9 @@ Neuron.prototype.reset = function(current_time) {
 }
 
 Neuron.prototype.next_reset = function() {
+  if(this.I < this.gamma) {
+    return;
+  }
   return this.last_potential.time + Math.log( (this.I-this.gamma*this.last_potential.potential)/(this.I-this.gamma)  );
 }
 
@@ -301,6 +304,9 @@ Neuron.prototype.phase_jump = function(current_phase, strength) {
 }
 
 Neuron.prototype.T = function() {
+  if(this.I < this.gamma) {
+    return;
+  }
   return Math.log(this.I/(this.I-this.gamma))/this.gamma;
 }
 
