@@ -135,6 +135,13 @@ test("calculating time of next reset for sub-critical driving current", function
   equals(neuron.next_reset(), undefined);
 });
 
+test("calculating voltage and phase evolution for sub-critical driving current", function() {
+  neuron.gamma = 3;
+  neuron.set_potential(0, 0.5);
+  equals(neuron.current_potential(0), 0.5);
+  ok(neuron.current_potential(1) < 0.5);
+});
+
 test("connecting to other neurons", function() {
   var n2 = new Neuron({ C: 1.04, gamma: 1 });
   neuron.connect(n2, 0.3, 0.4);
@@ -471,6 +478,55 @@ asyncTest("changing driving current", 3, function() {
     almost_equals(neuron.last_potential.time, 2.4501273211545636);
     equals(neuron.I, 2);
     equals(simulator.past_events.length, 4);
+
+    start();
+  });
+});
+
+asyncTest("simulating dynamics of single sub-critical driven neuron", 2, function() {
+  network = new Network();
+  var neuron = network.new_neuron({ I: 1.04, gamma: 2, initial_phase: 0 });
+
+  simulator.initialize(network);
+  simulator.start(50, function() {
+    equals(neuron.current_potential(50), 1.04/2);
+    equals(simulator.past_events.length, 1);
+
+    start();
+  });
+});
+
+asyncTest("simulating dynamics of single sub-critical driven neuron receiving subthreshold spike", function() {
+  network = new Network();
+  var neuron = network.new_neuron({ I: 1.04, gamma: 2, initial_phase: 0 });
+
+  simulator.new_event(10, "spike", {
+    recipient: neuron,
+    strength: 0.1
+  });
+
+  simulator.initialize(network);
+  simulator.start(50, function() {
+    equals(neuron.last_potential.time, 10);
+    almost_equals(neuron.current_potential(50), 1.04/2);
+
+    start();
+  });
+});
+
+asyncTest("simulating dynamics of single sub-critical driven neuron receiving superthreshold spike", function() {
+  network = new Network();
+  var neuron = network.new_neuron({ I: 1.04, gamma: 2, initial_phase: 0 });
+
+  simulator.new_event(10, "spike", {
+    recipient: neuron,
+    strength: 1.5
+  });
+
+  simulator.initialize(network);
+  simulator.start(50, function() {
+    equals(neuron.last_potential.time, 10);
+    almost_equals(neuron.current_potential(50), 1.04/2);
 
     start();
   });

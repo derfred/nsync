@@ -233,7 +233,11 @@ function Neuron(options) {
 };
 
 Neuron.prototype.initialize = function(current_time) {
-  this.set_phase(current_time, this.initial_phase);
+  if(this.initial_phase == 0) {
+    this.set_potential(current_time, 0);
+  } else {
+    this.set_phase(current_time, this.initial_phase);
+  }
 }
 
 Neuron.prototype.reset = function(current_time) {
@@ -516,7 +520,10 @@ NetworkDynamicsObserver.prototype.combine_spikes = function(existing_event, new_
 NetworkDynamicsObserver.prototype.event_initialize = function(simulator) {
   simulator.network.each_neuron(function(neuron) {
     neuron.initialize(simulator.current_time);
-    simulator.new_event(neuron.next_reset(), "reset", {recipient: neuron});
+    var next_reset = neuron.next_reset();
+    if(next_reset != undefined) {
+      simulator.new_event(next_reset, "reset", {recipient: neuron});
+    }
   });
 }
 
@@ -525,7 +532,9 @@ NetworkDynamicsObserver.prototype.event_reset = function(simulator, options) {
   neuron.reset(simulator.current_time);
 
   var next_reset = neuron.next_reset();
-  simulator.new_event(next_reset, "reset", {recipient: neuron});
+  if(next_reset != undefined) {
+    simulator.new_event(next_reset, "reset", {recipient: neuron});
+  }
 
   for (var i=0; i < neuron.connections.length; i++) {
     simulator.new_event(simulator.current_time+neuron.connections[i].delay, "spike", {
@@ -554,7 +563,9 @@ NetworkDynamicsObserver.prototype.interact_with_neuron = function(simulator, opt
     simulator.propagate_event("reset", { recipient: options.recipient });
   } else {
     var next_reset = options.recipient.next_reset();
-    simulator.new_event(next_reset, "reset", {recipient: options.recipient});
+    if(next_reset != undefined) {
+      simulator.new_event(next_reset, "reset", {recipient: options.recipient});
+    }
   }
 }
 
@@ -563,10 +574,12 @@ NetworkDynamicsObserver.prototype.event_properties = function(simulator, options
 
   options.recipient.update_properties(simulator.current_time, options.options);
 
-  var next_reset = options.recipient.next_reset()
-  simulator.new_event(next_reset, "reset", {
-    recipient: options.recipient
-  });
+  var next_reset = options.recipient.next_reset();
+  if(next_reset != undefined) {
+    simulator.new_event(next_reset, "reset", {
+      recipient: options.recipient
+    });
+  }
 }
 
 NetworkDynamicsObserver.prototype.event_phase_shift = function(simulator, options) {
