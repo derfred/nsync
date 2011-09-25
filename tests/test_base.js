@@ -500,12 +500,12 @@ asyncTest("simulating dynamics of single sub-critical driven neuron receiving su
   network = new Network();
   var neuron = network.new_neuron({ I: 1.04, gamma: 2, initial_phase: 0 });
 
+  simulator.initialize(network);
   simulator.new_event(10, "spike", {
     recipient: neuron,
     strength: 0.1
   });
 
-  simulator.initialize(network);
   simulator.start(50, function() {
     equals(neuron.last_potential.time, 10);
     almost_equals(neuron.current_potential(50), 1.04/2);
@@ -518,12 +518,12 @@ asyncTest("simulating dynamics of single sub-critical driven neuron receiving su
   network = new Network();
   var neuron = network.new_neuron({ I: 1.04, gamma: 2, initial_phase: 0 });
 
+  simulator.initialize(network);
   simulator.new_event(10, "spike", {
     recipient: neuron,
     strength: 1.5
   });
 
-  simulator.initialize(network);
   simulator.start(50, function() {
     equals(neuron.last_potential.time, 10);
     almost_equals(neuron.current_potential(50), 1.04/2);
