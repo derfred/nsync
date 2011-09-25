@@ -150,3 +150,50 @@ ResetObserver.prototype.sync_rules_satisfied = function(rules, search_window, pa
 }
 
 exports.ResetObserver = ResetObserver;
+
+
+function TimedPhaseObserver(options) {
+  this.interval = options.interval;
+  this.start_time = options.start_time ? options.start_time : 0;
+  this.lookahead = 2;
+}
+
+TimedPhaseObserver.prototype.event_initialize = function(simulator) {
+  var num_evts = this.lookahead / this.interval;
+  for(var i=0;i<num_evts;i++) {
+    simulator.new_event(this.start_time+i*this.interval, "tick");
+  }
+  this.log = [];
+}
+
+TimedPhaseObserver.prototype.event_tick = function(simulator) {
+  var result = {};
+  simulator.network.each_neuron(function(neuron) {
+    result[neuron.id] = neuron.current_phase(simulator.current_time);
+  });
+  result["time"] = simulator.current_time;
+  this.log.push(result);
+
+  simulator.new_event(simulator.current_time+this.lookahead, "tick");
+}
+
+TimedPhaseObserver.prototype.collate_log = function() {
+  var result = [];
+  for(var i=0;i<this.log.length;i++) {
+    var value = this.log[i];
+    var line = value.time+"";
+    for(k in value) {
+      if(k!="time") {
+        line += (","+k+","+value[k]);
+      }
+    }
+    result.push(line);
+  }
+  return result.join("\n");
+}
+
+TimedPhaseObserver.prototype.write_to_file = function(filename) {
+  fs.writeFile(filename, this.collate_log());
+}
+
+exports.TimedPhaseObserver = TimedPhaseObserver;

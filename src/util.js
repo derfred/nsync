@@ -31,6 +31,29 @@ function self_stabilizer(N, options) {
 export("self_stabilizer", self_stabilizer);
 
 
+function object_keys(object) {
+  var result = [];
+  for(k in object) {
+    result.push(k);
+  }
+  return result;
+}
+
+export("object_keys", object_keys);
+
+
+function array_remove(array, obj) {
+  for(var i=array.length-1;i!=0;i--) {
+    if(array[i] == obj) {
+      array.splice(i);
+    }
+  }
+  return array;
+}
+
+export("array_remove", array_remove);
+
+
 function group_by(array, predicate) {
   var tmp = {};
   var keys = [];
