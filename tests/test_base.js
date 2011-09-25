@@ -143,14 +143,14 @@ test("calculating voltage and phase evolution for sub-critical driving current",
 });
 
 test("connecting to other neurons", function() {
-  var n2 = new Neuron({ C: 1.04, gamma: 1 });
+  var n2 = new Neuron({ I: 1.04, gamma: 1 });
   neuron.connect(n2, 0.3, 0.4);
   equals(neuron.connections.length, 1);
   equals(neuron.connections[0].post_synaptic, n2);
 });
 
 test("labelling connections", function() {
-  var n2 = new Neuron({ C: 1.04, gamma: 1 });
+  var n2 = new Neuron({ I: 1.04, gamma: 1 });
   neuron.connect(n2, 0.3, 0.4, "inter");
   equals(neuron.connections[0].label, "inter");
 });
@@ -217,6 +217,29 @@ test("creating fully_connected with initial phases", function() {
   equals(network.neurons[2].initial_phase, 0.3);
   equals(network.neurons[3].initial_phase, 0.78);
   equals(network.neurons[4].initial_phase, 0.78);
+});
+
+test("serializing a network", function() {
+  network.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0.5 });
+  network.new_neuron({ I: 1.04, gamma: 2, initial_phase: 0 });
+
+  var result = network.serialize();
+  equals(result.length, 2);
+  deepEqual(result[0], { id: "0", I: 1.04, gamma: 1, initial_phase: 0.5 });
+  deepEqual(result[1], { id: "1", I: 1.04, gamma: 2, initial_phase: 0 });
+});
+
+test("serializing a network with connections", function() {
+  var n1 = network.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0.5 });
+  var n2 = network.new_neuron({ I: 1.04, gamma: 2, initial_phase: 0 });
+
+  n1.connect(n2, 0.3, 0.4);
+  n2.connect(n1, 0.5, 0.2);
+
+  var result = network.serialize();
+  equals(result.length, 2);
+  deepEqual(result[0].connections, [{ post_synaptic: "1", delay: 0.3, strength: 0.4 }]);
+  deepEqual(result[1].connections, [{ post_synaptic: "0", delay: 0.5, strength: 0.2 }]);
 });
 
 test("adding an empty sub network", function() {

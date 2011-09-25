@@ -233,6 +233,20 @@ Network.prototype.get_neuron_by = function(neuron_id) {
   })[0];
 }
 
+Network.prototype.serialize = function() {
+  var result = [];
+  if(this.has_sub_networks()) {
+    for(var i=0;i<this.sub_networks.length;i++) {
+      result.push(this.sub_networks[i].serialize());
+    }
+  } else {
+    for(var i=0;i<this.neurons.length;i++) {
+      result.push(this.neurons[i].serialize());
+    }
+  }
+  return result;
+}
+
 export("Network", Network);
 
 
@@ -332,6 +346,32 @@ Neuron.prototype.f = function(phase) {
 
 Neuron.prototype.g = function(potential) {
   return (1/(this.T()*this.gamma)) * Math.log(this.I/(this.I-this.gamma*potential));
+}
+
+Neuron.prototype.serialize = function() {
+  var result = {
+    id: this.id,
+    I: this.I,
+    gamma: this.gamma,
+    initial_phase: this.initial_phase
+  };
+
+  if(this.connections.length > 0) {
+    result.connections = [];
+    for(var i=0;i<this.connections.length;i++) {
+      var entry = {
+        post_synaptic: this.connections[i].post_synaptic.id,
+        delay: this.connections[i].delay,
+        strength: this.connections[i].strength
+      }
+      if(this.connections[i].label) {
+        entry.label = this.connections[i].label;
+      }
+      result.connections.push(entry);
+    }
+  }
+
+  return result;
 }
 
 export("Neuron", Neuron);
