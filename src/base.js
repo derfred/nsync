@@ -54,6 +54,14 @@ if(typeof(Function.prototype.bind) != "function") {
   };
 }
 
+function add_jitter(base, jitter) {
+  var result = base;
+  if(jitter) {
+    result += (2*jitter*(Math.random()-0.5));
+  }
+  return result;
+}
+
 
 function Network(prefix) {
   this.neurons = [];
@@ -62,8 +70,8 @@ function Network(prefix) {
 }
 
 Network.default_options = {
-  delay: 0.3,
-  strength: 0.023,
+  delay: 1.59,
+  strength: 0.025,
   I: 1.04,
   gamma: 1
 };
@@ -79,8 +87,8 @@ Network.fully_connected = function(total, options) {
     }
 
     network.new_neuron({
-      I: options.I,
-      gamma: options.gamma,
+      I: add_jitter(options.I, options.I_jitter),
+      gamma: add_jitter(options.gamma, options.gamma_jitter),
       initial_phase: initial_phase
     });
   };
@@ -88,7 +96,11 @@ Network.fully_connected = function(total, options) {
   for (var i=0; i < network.neurons.length; i++) {
     for (var j=0; j < network.neurons.length; j++) {
       if (j != i) {
-        network.neurons[i].connect(network.neurons[j], options.delay, options.strength);
+        network.neurons[i].connect(
+          network.neurons[j],
+          add_jitter(options.delay, options.delay_jitter),
+          add_jitter(options.strength, options.strength_jitter)
+        );
       }
     };
   };
