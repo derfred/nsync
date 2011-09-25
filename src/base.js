@@ -247,6 +247,36 @@ Network.prototype.serialize = function() {
   return result;
 }
 
+Network.deserialize = function(what, sub_network) {
+  var result = new Network();
+
+  for(var i=0;i<what.length;i++) {
+    if(typeof(what[i]) == "Array") {
+      result.add_sub_network(Network.deserialize(what[i], true));
+    } else {
+      var neuron = result.new_neuron(what[i]);
+      neuron.id = what[i].id;
+      neuron.proto_connections = what[i].connections;
+    }
+  }
+
+  if(!sub_network) {
+    result.each_neuron(function(neuron) {
+      if(neuron.proto_connections) {
+        for(var i=0;i<neuron.proto_connections.length;i++) {
+          var entry = neuron.proto_connections[i];
+          var post_synaptic = result.get_neuron_by(entry.post_synaptic);
+          neuron.connect(post_synaptic, entry.delay, entry.strength, entry.label);
+        }
+
+        delete neuron.proto_connections;
+      }
+    });
+  }
+
+  return result;
+}
+
 export("Network", Network);
 
 
