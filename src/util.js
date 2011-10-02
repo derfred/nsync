@@ -53,6 +53,22 @@ function array_remove(array, obj) {
 
 export("array_remove", array_remove);
 
+function array_compare(left, right) {
+  if(left.length != right.length) return false;
+
+  for(var i = 0; i < left.length; i++) {
+    if(left[i].length != undefined && typeof(left) != "string") { 
+      if(!array_compare(left[i], right[i])) {
+        return false;
+      }
+    } else if(left[i] !== right[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export("array_compare", array_compare);
 
 function group_by(array, predicate) {
   var tmp = {};
@@ -92,6 +108,18 @@ function array_unique(array) {
 }
 
 export("array_unique", array_unique);
+
+
+function array_mean(array) {
+  var result = 0.0;
+  for(var i=0;i<array.length;i++) {
+    result += array[i];
+  }
+  return result/array.length;
+}
+
+export("array_mean", array_mean);
+
 
 function _map_method(array, method_or_property) {
   var result = [];
