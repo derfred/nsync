@@ -89,7 +89,8 @@ Network.fully_connected = function(total, options) {
     network.new_neuron({
       I: add_jitter(options.I, options.I_jitter),
       gamma: add_jitter(options.gamma, options.gamma_jitter),
-      initial_phase: initial_phase
+      initial_phase: initial_phase,
+      partial_reset_factor: options.partial_reset_factor
     });
   };
 
@@ -285,6 +286,7 @@ function Neuron(options) {
   this.gamma = options.gamma;
   this.I = options.I;
   this.initial_phase = options.initial_phase != undefined ? options.initial_phase : Math.random();
+  this.partial_reset_factor = options.partial_reset_factor != undefined ? options.partial_reset_factor : 0;
   this.connections = [];
 };
 
@@ -333,9 +335,10 @@ Neuron.prototype.connect = function(post_synaptic, delay, strength, label) {
   });
 }
 
-Neuron.prototype.update_potential = function(current_time, new_potential) {
-  if(isNaN(new_potential) || new_potential > 1) {
-    this.set_potential(current_time, 0);
+Neuron.prototype.receive_spike = function(current_time, strength) {
+  var new_potential = strength+this.current_potential(current_time);
+  if(new_potential > 1) {
+    this.set_potential(current_time, (new_potential-1)*this.partial_reset_factor);
     return true;
   } else {
     this.set_potential(current_time, new_potential);
@@ -343,12 +346,15 @@ Neuron.prototype.update_potential = function(current_time, new_potential) {
   }
 }
 
-Neuron.prototype.receive_spike = function(current_time, strength) {
-  return this.update_potential(current_time, strength+this.current_potential(current_time));
-}
-
 Neuron.prototype.receive_phase_shift = function(current_time, phase_shift) {
-  return this.update_potential(current_time, this.f(this.current_phase(current_time)+phase_shift));
+  var new_potential = this.f(this.current_phase(current_time)+phase_shift);
+  if(isNaN(new_potential) || new_potential > 1) {
+    this.set_potential(current_time, 0);
+    return true;
+  } else {
+    this.set_potential(current_time, new_potential);
+    return false;
+  }
 }
 
 Neuron.prototype.update_properties = function(current_time, options) {
