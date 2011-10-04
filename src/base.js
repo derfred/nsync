@@ -286,11 +286,13 @@ function Neuron(options) {
   this.gamma = options.gamma;
   this.I = options.I;
   this.initial_phase = options.initial_phase != undefined ? options.initial_phase : Math.random();
-  this.partial_reset_factor = options.partial_reset_factor != undefined ? options.partial_reset_factor : 0;
+  this.partial_reset_factor = options.partial_reset_factor != undefined ? options.partial_reset_factor : 0.0;
   this.connections = [];
+  this.partial_reset_potential = 0;
 };
 
 Neuron.prototype.initialize = function(current_time) {
+  this.partial_reset_potential = 0;
   if(this.initial_phase == 0) {
     this.set_potential(current_time, 0);
   } else {
@@ -299,7 +301,8 @@ Neuron.prototype.initialize = function(current_time) {
 }
 
 Neuron.prototype.reset = function(current_time) {
-  this.set_potential(current_time, 0);
+  this.set_potential(current_time, this.partial_reset_potential);
+  this.partial_reset_potential = 0;
 }
 
 Neuron.prototype.next_reset = function() {
@@ -338,7 +341,8 @@ Neuron.prototype.connect = function(post_synaptic, delay, strength, label) {
 Neuron.prototype.receive_spike = function(current_time, strength) {
   var new_potential = strength+this.current_potential(current_time);
   if(new_potential > 1) {
-    this.set_potential(current_time, (new_potential-1)*this.partial_reset_factor);
+    this.partial_reset_potential = (new_potential-1)*this.partial_reset_factor;
+    this.set_potential(current_time, this.partial_reset_potential);
     return true;
   } else {
     this.set_potential(current_time, new_potential);

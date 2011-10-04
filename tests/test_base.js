@@ -589,6 +589,24 @@ asyncTest("simulating dynamics of single transmitted spike", function() {
   });
 });
 
+asyncTest("simulating dynamics with partial reset", 4, function() {
+  network = new Network();
+  var n1 = network.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0.9 });
+  var n2 = network.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0, partial_reset_factor: 1 });
+
+  n1.connect(n2, 0.3, 0.1);
+
+  simulator.initialize(network);
+  simulator.start(0.5*n1.T(), function() {
+    almost_equals(n1.current_phase(0.5*n1.T()), 0.4);
+    almost_equals(n2.current_phase(0.5*n1.T()), 0.5608294484932627);
+    almost_equals(n2.last_potential.time, 0.1*n1.T()+0.3);
+    equals(simulator.past_events.length, 3);
+
+    start();
+  });
+});
+
 asyncTest("simulating dynamics of single phase shift spike", 2, function() {
   network = new Network();
   neuron = network.new_neuron({ I: 1.04, gamma: 1, initial_phase: 0 });
