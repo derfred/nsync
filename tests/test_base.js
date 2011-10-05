@@ -258,6 +258,22 @@ test("deserializing a serialized network", function() {
   equals(n2.connections[0].post_synaptic.id, n1.id);
 });
 
+test("deserializing a serialized network excluding connections", function() {
+  network = Network.deserialize([
+    { id: "0", I: 1.04, gamma: 1, initial_phase: 0.5, connections: [{ post_synaptic: "1", delay: 0.3, strength: 0.4 }] },
+    { id: "1", I: 1.04, gamma: 2, initial_phase: 0,   connections: [{ post_synaptic: "0", delay: 0.5, strength: 0.3 }] },
+  ], { exclude_connections: true });
+
+  var n1 = network.get_neuron_by("0");
+  var n2 = network.get_neuron_by("1");
+
+  equals(network.number_of_neurons(), 2);
+  equals(n1.I, 1.04);
+  equals(n2.gamma, 2);
+  equals(n1.connections.length, 0);
+  equals(n2.connections.length, 0);
+});
+
 test("adding an empty sub network", function() {
   var sub_network = network.new_sub_network();
   equals(sub_network.constructor, Network);

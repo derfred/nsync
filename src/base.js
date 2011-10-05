@@ -247,16 +247,18 @@ Network.prototype.serialize = function() {
   return result;
 }
 
-Network.deserialize = function(what, sub_network) {
+Network.deserialize = function(what, options, sub_network) {
   var result = new Network();
 
   for(var i=0;i<what.length;i++) {
     if(typeof(what[i]) == "Array") {
-      result.add_sub_network(Network.deserialize(what[i], true));
+      result.add_sub_network(Network.deserialize(what[i], options, true));
     } else {
       var neuron = result.new_neuron(what[i]);
       neuron.id = what[i].id;
-      neuron.proto_connections = what[i].connections;
+      if(!options || !options.exclude_connections) {
+        neuron.proto_connections = what[i].connections;
+      }
     }
   }
 
