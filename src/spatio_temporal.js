@@ -1,4 +1,5 @@
-var fs = require("fs");
+var fs = require("fs"),
+    util = require("./util.js");
 
 // this klass can read .PGM files
 function GrayScaleImage(file_name) {
@@ -56,8 +57,6 @@ GrayScaleImage.prototype.get = function(x, y) {
 }
 
 GrayScaleImage.prototype.row = function(y) {
-  console.log(y*this.width, this.width)
-  console.log(this.pixels.length)
   return this.pixels.slice(y*this.width, y*this.width+this.width);
 }
 
@@ -69,4 +68,48 @@ GrayScaleImage.prototype.col = function(x) {
   return result;
 }
 
-exports.GrayScaleImage = GrayScaleImage;
+GrayScaleImage.prototype.box_average = function(x, y, w, h) {
+  var result = 0;
+  for(var i=0;i<w;i++) {
+    for(var j=0;j<h;j++) {
+      result += this.get(x+i, y+j);
+    }
+  }
+  return result/(w*h);
+}
+
+
+// this klass reads a grayscale image and uses it as specification of varying driving current
+function ImageDriver(file_name, options) {
+  this.image = new GrayScaleImage(file_name);
+  options = util.merge(ImageDriver.defaults, options);
+  this.start = options.start;
+  this.box_width = options.box_width;
+  this.time_factor = options.time_factor;
+
+  if(this.image.width%this.box_width != 0) throw "image width not multiple of box_width"
+}
+
+ImageDriver.defaults = {
+  start: 0,
+  box_width: 1,
+  time_factor: 5,
+  base_current: 1.04,
+  base_asymmetry: 0.001
+}
+
+ImageDriver.prototype.event_initialize = function(simulator, options) {
+  var N = simulator.network.neurons.length;
+  var box_height = this.image.height/N;
+  var M = this.image.width/this.box_width;
+  for(var i=0;i<N;i++) {
+    for(var j=0;j<M;j++) {
+      var value = this.image.box_average(j*this.box_width, i*box_height, this.box_width, box_height);
+      simulator.new_event(this.start+j*this.time_factor, "properties", {
+        I: this.base_current+value*this.base_asymmetry
+      });
+    }
+  }
+}
+
+exports.ImageDriver = ImageDriver;
