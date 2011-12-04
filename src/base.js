@@ -248,6 +248,10 @@ Network.prototype.serialize = function() {
   return result;
 }
 
+Network.deserialize_from_file = function(filename) {
+  return Network.deserialize(JSON.parse(require("fs").readFileSync(filename)));
+}
+
 Network.deserialize = function(what, sub_network) {
   var result = new Network();
 
@@ -515,9 +519,6 @@ EventQueue.prototype.dump_queue = function() {
   }
   return result;
 }
-
-export("EventQueue", EventQueue);
-
 
 /*
 *  This noise generator will simulate noise via a poisson process of spikes added to each neuron.
