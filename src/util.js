@@ -70,6 +70,27 @@ function array_compare(left, right) {
 
 export("array_compare", array_compare);
 
+function array_include(needle, haystack) {
+  return array_index(needle, haystack) != undefined;
+}
+
+export("array_include", array_include);
+
+function array_index(needle, haystack) {
+  for(var i=0;i<haystack.length;i++) {
+    var item = haystack[i];
+    if(item.length != undefined && typeof(left) != "string") {
+      if(array_compare(needle, item)) {
+        return i;
+      }
+    } else if(item === needle) {
+      return i;
+    }
+  }
+}
+
+export("array_index", array_index);
+
 function group_by(array, predicate) {
   var tmp = {};
   var keys = [];
@@ -121,6 +142,22 @@ function array_mean(array) {
 export("array_mean", array_mean);
 
 
+function merge(left, right) {
+  if(!right) {
+    return left;
+  } else {
+    for(k in left) {
+      if(!right[k]) {
+        right[k] = left[k];
+      }
+    }
+    return right;
+  }
+}
+
+export("merge", merge);
+
+
 function _map_method(array, method_or_property) {
   var result = [];
   for(var i=0;i<array.length;i++) {
@@ -151,6 +188,17 @@ function map(array, method_or_property_or_function) {
 }
 
 export("map", map);
+
+
+function or_default(value, default_value) {
+  if(value===undefined) {
+    return default_value;
+  } else {
+    return value;
+  }
+}
+
+export("or_default", or_default);
 
 
 function event_sender_string(event) {

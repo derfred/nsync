@@ -1,4 +1,6 @@
-var fs = require("fs");
+var fs = require("fs"),
+    util = require("./util.js");
+
 
 function PoincareSectionObserver(options) {
   this.section_function = this.build_section_function(options);
@@ -51,7 +53,7 @@ PoincareSectionObserver.prototype.collate_log = function() {
 }
 
 PoincareSectionObserver.prototype.write_to_file = function(filename) {
-  fs.writeFile(filename, this.collate_log());
+  fs.writeFileSync(filename, this.collate_log());
 }
 
 exports.PoincareSectionObserver = PoincareSectionObserver;
@@ -112,7 +114,27 @@ ResetObserver.prototype.collate_log = function() {
 }
 
 ResetObserver.prototype.write_to_file = function(filename) {
-  fs.writeFile(filename, this.collate_log());
+  fs.writeFileSync(filename, this.collate_log());
+}
+
+ResetObserver.prototype.group_sync_events = function(delta) {
+  if(this.log.length == 0) {
+    return [];
+  }
+
+  delta = util.or_default(delta, 0.01);
+
+  var result = [];
+  result.push({time: this.log[0].time, ids: [this.log[0].neuron.id]})
+  for(var i=1;i<this.log.length;i++) {
+    if(Math.abs(result[result.length-1].time-this.log[i].time) < delta) {
+      result[result.length-1].ids.push(this.log[i].neuron.id);
+      result[result.length-1].ids.sort();
+    } else {
+      result.push({time: this.log[i].time, ids: [this.log[i].neuron.id]})
+    }
+  }
+  return result;
 }
 
 ResetObserver.prototype.matching_synced_event = function(log, evt, expected, delta) {
