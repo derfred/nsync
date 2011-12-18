@@ -1,4 +1,4 @@
-function export(name, type) {
+function export_sym(name, type) {
   if(typeof(exports) != "undefined") {
     exports[name] = type;
   }
@@ -33,14 +33,14 @@ function defer(callback, waittime) {
   }
 }
 
-export("merge", merge);
+export_sym("merge", merge);
 
 
 function get_time() {
   return (new Date()).getTime();
 }
 
-export("get_time", get_time);
+export_sym("get_time", get_time);
 
 
 if(typeof(Function.prototype.bind) != "function") {
@@ -284,7 +284,7 @@ Network.deserialize = function(what, options, sub_network) {
   return result;
 }
 
-export("Network", Network);
+export_sym("Network", Network);
 
 
 
@@ -420,7 +420,7 @@ Neuron.prototype.serialize = function() {
   return result;
 }
 
-export("Neuron", Neuron);
+export_sym("Neuron", Neuron);
 
 
 
@@ -452,7 +452,7 @@ Event.prototype.toString = function() {
   return result;
 }
 
-export("Event", Event);
+export_sym("Event", Event);
 
 
 function EventQueue() {
@@ -577,7 +577,7 @@ PoissonNoiseGenerator.prototype.next_time = function(current_time) {
   return current_time - (1/this.rate)*Math.log(Math.random());
 }
 
-export("PoissonNoiseGenerator", PoissonNoiseGenerator);
+export_sym("PoissonNoiseGenerator", PoissonNoiseGenerator);
 
 
 function NetworkDynamicsObserver() {
@@ -820,4 +820,4 @@ Simulator.prototype.perturb_neuron = function(neuron_id, strength) {
   this.event_queue.add_event(new Event(this.next_event_time, "spike", {recipient: neuron, strength: strength}))
 }
 
-export("Simulator", Simulator);
+export_sym("Simulator", Simulator);

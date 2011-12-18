@@ -1,6 +1,6 @@
 var base = require("./base.js");
 
-function export(name, type) {
+function export_sym(name, type) {
   if(typeof(exports) != "undefined") {
     exports[name] = type;
   }
@@ -28,7 +28,7 @@ function self_stabilizer(N, options) {
   return network;
 }
 
-export("self_stabilizer", self_stabilizer);
+export_sym("self_stabilizer", self_stabilizer);
 
 
 function object_keys(object) {
@@ -39,19 +39,19 @@ function object_keys(object) {
   return result;
 }
 
-export("object_keys", object_keys);
+export_sym("object_keys", object_keys);
 
 
 function array_remove(array, obj) {
   for(var i=array.length-1;i!=0;i--) {
-    if(array[i] == obj) {
-      array.splice(i);
+    if(array[i] === obj) {
+      array.splice(i, 1);
     }
   }
   return array;
 }
 
-export("array_remove", array_remove);
+export_sym("array_remove", array_remove);
 
 function array_compare(left, right) {
   if(left.length != right.length) return false;
@@ -68,13 +68,13 @@ function array_compare(left, right) {
   return true;
 }
 
-export("array_compare", array_compare);
+export_sym("array_compare", array_compare);
 
 function array_include(needle, haystack) {
   return array_index(needle, haystack) != undefined;
 }
 
-export("array_include", array_include);
+export_sym("array_include", array_include);
 
 function array_index(needle, haystack) {
   for(var i=0;i<haystack.length;i++) {
@@ -89,7 +89,7 @@ function array_index(needle, haystack) {
   }
 }
 
-export("array_index", array_index);
+export_sym("array_index", array_index);
 
 function group_by(array, predicate) {
   var tmp = {};
@@ -111,7 +111,7 @@ function group_by(array, predicate) {
   return result;
 }
 
-export("group_by", group_by);
+export_sym("group_by", group_by);
 
 
 function array_unique(array) {
@@ -128,7 +128,7 @@ function array_unique(array) {
   return a;
 }
 
-export("array_unique", array_unique);
+export_sym("array_unique", array_unique);
 
 
 function array_mean(array) {
@@ -139,7 +139,7 @@ function array_mean(array) {
   return result/array.length;
 }
 
-export("array_mean", array_mean);
+export_sym("array_mean", array_mean);
 
 
 function merge(left, right) {
@@ -155,7 +155,7 @@ function merge(left, right) {
   }
 }
 
-export("merge", merge);
+export_sym("merge", merge);
 
 
 function _map_method(array, method_or_property) {
@@ -187,7 +187,7 @@ function map(array, method_or_property_or_function) {
   }
 }
 
-export("map", map);
+export_sym("map", map);
 
 
 function or_default(value, default_value) {
@@ -198,7 +198,7 @@ function or_default(value, default_value) {
   }
 }
 
-export("or_default", or_default);
+export_sym("or_default", or_default);
 
 
 function event_sender_string(event) {
@@ -209,7 +209,7 @@ function event_sender_string(event) {
   }
 }
 
-export("event_sender_string", event_sender_string);
+export_sym("event_sender_string", event_sender_string);
 
 
 
@@ -308,10 +308,10 @@ function print_event_table(simulator, reset_observers, from, to) {
   console.log("\\end{document}");
 }
 
-export("print_event_table", print_event_table);
+export_sym("print_event_table", print_event_table);
 
 function get_time() {
   return (new Date()).getTime();
 }
 
-export("get_time", get_time);
+export_sym("get_time", get_time);
