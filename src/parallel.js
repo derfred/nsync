@@ -2,6 +2,10 @@ var cluster = require('cluster');
 var numCPUs = require('os').cpus().length;
 var workers = [];
 
+function default_next(work_object) {
+  return work_object.work.pop();
+}
+
 exports.parallelize = function(work_object) {
   if(cluster.isMaster) {
     for (var i = 0; i < numCPUs; i++) {
@@ -13,7 +17,7 @@ exports.parallelize = function(work_object) {
 
         if(m.cmd == "online" || m.cmd == "done") {
           var worker = workers[m._workerId-1];
-          var param = work_object.next();
+          var param = (work_object.next||default_next)(work_object);
           if(param != undefined) {
             worker.send({ cmd: "process", param: param })
           } else {
