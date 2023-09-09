@@ -1,4 +1,4 @@
-import subprocess, multiprocessing, tqdm
+import subprocess, multiprocessing, tqdm, sys
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
@@ -24,12 +24,13 @@ def find_symmetry(data):
   return "-".join(sorted(str(len(p)) for p in pattern))
 
 def simulate(delay, strength):
-  nsync_process = subprocess.Popen(['./nsync', "50", str(delay), str(strength)], stdout=subprocess.PIPE, universal_newlines=True)
+  command = ['./nsync', "150", str(delay), str(strength)]
+  process = subprocess.Popen(command, stdout=subprocess.PIPE, universal_newlines=True)
 
   data = []
 
   # Read and parse the output
-  for line in nsync_process.stdout:
+  for line in process.stdout:
     values    = line.strip().split('\t')
     timestamp = float(values[0])
     phases    = [float(phase) for phase in values[1:]]
@@ -38,8 +39,8 @@ def simulate(delay, strength):
       resets = [i for i, x in enumerate(phases) if x == 0.0]
       data.append((timestamp, resets))
 
-  nsync_process.stdout.close()
-  nsync_process.wait()
+  process.stdout.close()
+  process.wait()
 
   return data[:-1]
 
@@ -50,39 +51,50 @@ def find_density(trials, delay, strength):
     result[find_symmetry([l[1] for l in data[-20:]])] += 1
   return result
 
-def process_cell(i, j, side_len):
-  delay    = 0.25 + 0.125 * (i / side_len)
-  strength = 0.0625  * (j / side_len)
-  density  = find_density(side_len, delay, strength)["2-3"]
+def test():
+  print(find_density(10, 0.5, 1.5))
+  # data = simulate(2.5, 0.05)
+  # print(find_symmetry([l[1] for l in data[-20:]]))
+
+def process_cell(i, j, delay, strength, side_len):
+  densities = find_density(int(side_len/1), delay, strength)
+  density = densities["1-2-2"] #* densities["2-3"]
   return (i, j, density)
 
-def main():
-  side_len  = 100
-  num_cores = multiprocessing.cpu_count()
-  pool      = multiprocessing.Pool(processes=num_cores)
-
-  results = []
+def plot_area(x_offset, x_scale, y_offset, y_scale, side_len = 100):
+  pool = multiprocessing.Pool()
+  jobs = []
   for i in range(side_len):
     for j in range(side_len):
-      results.append(pool.apply_async(process_cell, args=(i, j, side_len)))
-
+      x = x_offset + i / side_len * x_scale
+      y = y_offset + j / side_len * y_scale
+      jobs.append(pool.apply_async(process_cell, args=(i, j, x, y, side_len)))
   pool.close()
-  pool.join()
 
   data = [[None] * side_len for _ in range(side_len)]
-  for result in results:
+  for result in tqdm.tqdm(jobs):
     i, j, density = result.get()
     data[i][j] = density
 
   data_array = np.array(data)
   plt.imshow(data_array, cmap='hot', interpolation='nearest')
   plt.colorbar(label='Density')
-  plt.xlabel('Strength')
-  plt.ylabel('Delay')
+  plt.xlabel('Delay')
+  plt.ylabel('Strength')
+  x_ticks = np.linspace(x_offset, x_offset + x_scale, num=5)  # You can adjust the number of ticks as needed
+  y_ticks = np.linspace(y_offset, y_offset + y_scale, num=5)
+  plt.xticks(np.linspace(0, side_len - 1, num=5), x_ticks)
+  plt.yticks(np.linspace(0, side_len - 1, num=5), y_ticks)
   plt.title('Density Heatmap')
   plt.show()
 
 if __name__ == "__main__":
-  #r = process_cell(61, 8, 100)
-  #print(r)
-  main()
+  mode = "plot"
+  if len(sys.argv) > 1:
+    mode = sys.argv[1]
+
+  {
+    "test": lambda: test(),
+    "scan": lambda: print(find_density(100, 0.5, 1.5)),
+    "plot": lambda: plot_area(0, 0.5, 0.1, 0.2, 100)
+  }[mode]()
