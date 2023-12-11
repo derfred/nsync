@@ -1,1 +1,7 @@
-nsync
+*.o
+*.metallib
+.DS_Store
+build
+scratch
+__pycache__
+.vscode
