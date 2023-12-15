@@ -55,22 +55,20 @@ void print_phases(struct Network *network, char * suffix) {
   print_phases_with_prefix_and_suffix(network, prefix, suffix);
 }
 
-int main(int argc, char *argv[]) {
-  struct Network network;
-  initialize(&network, argc, argv);
-  const int suffix_size = network.N + 2 + 1;
+void cpu_run_network(struct Network *network) {
+  const int suffix_size = network->N + 2 + 1;
   char * suffix = (char *) malloc(sizeof(char) * suffix_size);
 
-  while (network.now < network.Tmax) {
-    double next_reset = network.Tmax;
+  while (network->now < network->Tmax) {
+    double next_reset = network->Tmax;
     int reset_map     = 0;
 
-    double next_spike = network.Tmax;
+    double next_spike = network->Tmax;
     int spike_map     = 0;
 
     // 1. find time to next event, and determine type of event
-    for (int i = 0; i < network.N; i++) {
-      double _next_reset = network.now + time_to_reset(&network, i);
+    for (int i = 0; i < network->N; i++) {
+      double _next_reset = network->now + time_to_reset(network, i);
       if (_next_reset < next_reset) {
         next_reset = _next_reset;
         reset_map = 1 << i;
@@ -78,9 +76,9 @@ int main(int argc, char *argv[]) {
         reset_map |= 1 << i;
       }
 
-      if (network.resets[i] > 0) {
-        double _next_spike = network.resets[i] + network.delay;
-        if (_next_spike > network.now) {
+      if (network->resets[i] > 0) {
+        double _next_spike = network->resets[i] + network->delay;
+        if (_next_spike > network->now) {
           if (_next_spike < next_spike) {
             next_spike = _next_spike;
             spike_map = 1 << i;
@@ -93,46 +91,53 @@ int main(int argc, char *argv[]) {
 
     // 2. advance phases
     double _now = fmin(next_reset, next_spike);
-    double dt   = _now - network.now;
-    for (int i = 0; i < network.N; i++) {
-      network.phases[i] += dt / network.periods[i];
+    double dt   = _now - network->now;
+    for (int i = 0; i < network->N; i++) {
+      network->phases[i] += dt / network->periods[i];
     }
 
     if (next_reset < next_spike) {
-      build_bitmap(suffix, reset_map, network.N, 'r');
+      build_bitmap(suffix, reset_map, network->N, 'r');
       // 3.a. if reset -> issue spikes
-      for (int i = 0; i < network.N; i++) {
+      for (int i = 0; i < network->N; i++) {
         if (reset_map & (1 << i)) {
-          network.resets[i] = _now;
-          network.phases[i] = 0;
+          network->resets[i] = _now;
+          network->phases[i] = 0;
         }
       }
     } else {
       int reset = 0;
-      build_bitmap(suffix, spike_map, network.N, 's');
+      build_bitmap(suffix, spike_map, network->N, 's');
       // 3.b. if spike -> jump phases, reset if necessary
-      for (int i = 0; i < network.N; i++) {
+      for (int i = 0; i < network->N; i++) {
         double eps = 0;
-        for (int j = 0; j < network.N; j++) {
+        for (int j = 0; j < network->N; j++) {
           if (i != j) {
             if (spike_map & (1 << j)) {
-              eps += network.strength;
+              eps += network->strength;
             }
           }
         }
         if (eps > 0) {
-          network.phases[i] = gf(&network, i, eps);
+          network->phases[i] = gf(network, i, eps);
         }
-        if (network.phases[i] >= 1) {
+        if (network->phases[i] >= 1) {
           reset |= 1 << i;
-          network.resets[i] = _now;
-          network.phases[i] = 0;
+          network->resets[i] = _now;
+          network->phases[i] = 0;
         }
       }
     }
-    network.now = _now;
-    print_phases(&network, suffix);
+    network->now = _now;
+    print_phases(network, suffix);
   }
+}
+
+int main(int argc, char *argv[]) {
+  struct Network network;
+  initialize(&network, argc, argv);
+
+  cpu_run_network(&network);
 
   return 0;
 }

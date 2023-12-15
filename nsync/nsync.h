@@ -1,3 +1,5 @@
+#pragma once
+
 struct NetworkParams {
   double Tmax;
   int N;

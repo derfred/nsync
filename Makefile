@@ -1,5 +1,6 @@
 CC=gcc
 CFLAGS=-I.
+LDFLAGS=-lm
 BUILD_DIR=build
 SRC_DIR=nsync
 
@@ -9,15 +10,14 @@ SRC_FILES=$(SRC_DIR)/nsync.c $(SRC_DIR)/config.c
 # Object files for native and cross compilation
 OBJ_FILES=$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_FILES))
 CROSS_OBJ_FILES=$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%_cross.o,$(SRC_FILES))
-
-# Create build directory if it does not exist
+BINARY_FILES=$(BUILD_DIR)/nsync
 $(shell mkdir -p $(BUILD_DIR))
 
 # Native compilation
-all: $(BUILD_DIR)/nsync
+all: $(BINARY_FILES)
 
 $(BUILD_DIR)/nsync: $(OBJ_FILES)
-	$(CC) -o $@ $^
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) -c $< -o $@ $(CFLAGS)
