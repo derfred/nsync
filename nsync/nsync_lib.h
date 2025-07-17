@@ -13,8 +13,9 @@ struct SimulationResult {
 };
 
 // Library functions for Python interface
-void init_network_with_params(struct Network *network, int N, double Tmax, double delay, 
-                             double strength, double I, double Ijitter, unsigned int seed);
+void init_network(struct Network *network, int N, double Tmax, double delay, 
+                  double strength, double I, double Ijitter, unsigned int seed, 
+                  double *initial_phases);
 void free_network(struct Network *network);
 struct SimulationResult* run_network_simulation(struct Network *network);
 void free_simulation_result(struct SimulationResult *result); 

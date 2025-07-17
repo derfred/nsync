@@ -70,9 +70,10 @@ void free_simulation_result(struct SimulationResult *result) {
     }
 }
 
-// Initialize network with parameters
-void init_network_with_params(struct Network *network, int N, double Tmax, double delay, 
-                             double strength, double I, double Ijitter, unsigned int seed) {
+// Initialize network with parameters and optional initial phases
+void init_network(struct Network *network, int N, double Tmax, double delay, 
+                  double strength, double I, double Ijitter, unsigned int seed, 
+                  double *initial_phases) {
     srand(seed);
     
     network->now = 0;
@@ -90,7 +91,13 @@ void init_network_with_params(struct Network *network, int N, double Tmax, doubl
         network->currents[i] = I + i * Ijitter;
         network->periods[i] = log(network->currents[i]/(network->currents[i] - 1));
         network->resets[i] = -1;
-        network->phases[i] = (double) rand() / RAND_MAX;
+        
+        // Use provided initial phases or generate random ones
+        if (initial_phases != NULL) {
+            network->phases[i] = initial_phases[i];
+        } else {
+            network->phases[i] = (double) rand() / RAND_MAX;
+        }
     }
 }
 

@@ -96,7 +96,7 @@ class NetworkSimulation:
         self.SimulationResult = SimulationResult
         
         # Define function signatures
-        self.lib.init_network_with_params.argtypes = [
+        self.lib.init_network.argtypes = [
             ctypes.POINTER(Network),
             ctypes.c_int,    # N
             ctypes.c_double, # Tmax
@@ -104,9 +104,10 @@ class NetworkSimulation:
             ctypes.c_double, # strength
             ctypes.c_double, # I
             ctypes.c_double, # Ijitter
-            ctypes.c_uint    # seed
+            ctypes.c_uint,   # seed
+            ctypes.POINTER(ctypes.c_double)  # initial_phases (NULL for random)
         ]
-        self.lib.init_network_with_params.restype = None
+        self.lib.init_network.restype = None
         
         self.lib.run_network_simulation.argtypes = [ctypes.POINTER(Network)]
         self.lib.run_network_simulation.restype = ctypes.POINTER(SimulationResult)
@@ -125,7 +126,8 @@ class NetworkSimulation:
         strength: float = 0.025,
         I: float = 1.04,
         Ijitter: float = 0.0,
-        seed: Optional[int] = None
+        seed: Optional[int] = None,
+        initial_phases: Optional[List[float]] = None
     ) -> Dict:
         """Run a network simulation with the given parameters.
         
@@ -137,6 +139,8 @@ class NetworkSimulation:
             I: Base current
             Ijitter: Current jitter between neurons
             seed: Random seed (uses current time if None)
+            initial_phases: List of initial phases for each neuron (0-1), 
+                          if None uses random phases
         
         Returns:
             Dictionary containing:
@@ -151,13 +155,28 @@ class NetworkSimulation:
         if seed is None:
             seed = int(time.time() * 1000000) % (2**32)
         
+        # Validate initial_phases if provided
+        if initial_phases is not None:
+            if len(initial_phases) != N:
+                raise ValueError(f"initial_phases must have length N={N}, got {len(initial_phases)}")
+            if not all(0 <= phase <= 1 for phase in initial_phases):
+                raise ValueError("All initial phases must be between 0 and 1")
+        
         # Create network structure
         network = self.Network()
         
         # Initialize network
-        self.lib.init_network_with_params(
-            ctypes.byref(network), N, Tmax, delay, strength, I, Ijitter, seed
-        )
+        if initial_phases is None:
+            # Use random initialization
+            self.lib.init_network(
+                ctypes.byref(network), N, Tmax, delay, strength, I, Ijitter, seed, None
+            )
+        else:
+            # Use specified initial phases
+            phases_array = (ctypes.c_double * N)(*initial_phases)
+            self.lib.init_network(
+                ctypes.byref(network), N, Tmax, delay, strength, I, Ijitter, seed, phases_array
+            )
         
         try:
             # Run simulation
@@ -214,7 +233,8 @@ class NetworkSimulation:
                     'strength': strength,
                     'I': I,
                     'Ijitter': Ijitter,
-                    'seed': seed
+                    'seed': seed,
+                    'initial_phases': initial_phases
                 }
             }
         
@@ -287,8 +307,9 @@ if __name__ == "__main__":
     # Create simulation instance
     sim = NetworkSimulation()
     
-    # Run simulation with custom parameters
-    result = sim.run_simulation(
+    # Run simulation with custom parameters and random initial phases
+    print("\n1. Simulation with random initial phases:")
+    result1 = sim.run_simulation(
         N=3,
         Tmax=50.0,
         strength=0.05,
@@ -296,19 +317,43 @@ if __name__ == "__main__":
     )
     
     print(f"Simulation completed!")
-    print(f"- {len(result['times'])} time steps")
-    print(f"- {len(result['events'])} events")
-    print(f"- Phase data shape: {result['phases'].shape}")
+    print(f"- {len(result1['times'])} time steps")
+    print(f"- {len(result1['events'])} events")
+    print(f"- Phase data shape: {result1['phases'].shape}")
+    print(f"- Initial phases: {result1['parameters']['initial_phases']}")
+    print(f"- First few phases: {result1['phases'][0]}")
     
-    # Get spike times
-    spikes = sim.get_spikes(result)
-    print(f"\nSpike times per neuron:")
-    for neuron_id, spike_times in spikes.items():
+    # Run simulation with specified initial phases
+    print("\n2. Simulation with specified initial phases:")
+    custom_phases = [0.1, 0.5, 0.9]  # Different starting phases for each neuron
+    result2 = sim.run_simulation(
+        N=3,
+        Tmax=50.0,
+        strength=0.05,
+        seed=42,
+        initial_phases=custom_phases
+    )
+    
+    print(f"Simulation completed!")
+    print(f"- {len(result2['times'])} time steps")
+    print(f"- {len(result2['events'])} events")
+    print(f"- Phase data shape: {result2['phases'].shape}")
+    print(f"- Initial phases: {result2['parameters']['initial_phases']}")
+    print(f"- First few phases: {result2['phases'][0]}")
+    
+    # Get spike times for both simulations
+    spikes1 = sim.get_spikes(result1)
+    spikes2 = sim.get_spikes(result2)
+    
+    print(f"\nSpike times comparison:")
+    print("Random initial phases:")
+    for neuron_id, spike_times in spikes1.items():
         print(f"  Neuron {neuron_id}: {len(spike_times)} spikes")
         if spike_times:
-            print(f"    Times: {spike_times[:5]}{'...' if len(spike_times) > 5 else ''}")
+            print(f"    First spike: {spike_times[0]:.3f}")
     
-    # Show first few events
-    print(f"\nFirst 5 events:")
-    for i, event in enumerate(result['events'][:5]):
-        print(f"  {event}") 
+    print("Custom initial phases:")
+    for neuron_id, spike_times in spikes2.items():
+        print(f"  Neuron {neuron_id}: {len(spike_times)} spikes")
+        if spike_times:
+            print(f"    First spike: {spike_times[0]:.3f}") 

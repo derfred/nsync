@@ -72,6 +72,7 @@ void run_network_core(struct Network *network,
       network->phases[i] += dt / network->periods[i];
     }
 
+    int reset = 0;
     if (next_reset < next_spike) {
       build_bitmap(suffix, reset_map, network->N, 'r');
       // 3.a. if reset -> issue spikes
@@ -79,10 +80,10 @@ void run_network_core(struct Network *network,
         if (reset_map & (1 << i)) {
           network->resets[i] = _now;
           network->phases[i] = 0;
+          reset |= 1 << i;
         }
       }
     } else {
-      int reset = 0;
       build_bitmap(suffix, spike_map, network->N, 's');
       // 3.b. if spike -> jump phases, reset if necessary
       for (int i = 0; i < network->N; i++) {
