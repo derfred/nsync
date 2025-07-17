@@ -5,3 +5,4 @@ build
 scratch
 __pycache__
 .vscode
+nsync/libnsync.so
