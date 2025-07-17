@@ -27,11 +27,7 @@ class NetworkSimulation:
     
     def _compile_library(self):
         """Compile the C library as a shared object."""
-        nsync_dir = Path("nsync")
-        
-        # Check if source files exist
-        if not nsync_dir.exists():
-            raise FileNotFoundError("nsync directory not found")
+        nsync_dir = Path(__file__).parent
         
         required_files = ["nsync.h", "nsync_lib.c", "nsync_lib.h", "nsync_core.c", "nsync_core.h", "config.c"]
         for file in required_files:
@@ -57,24 +53,19 @@ class NetworkSimulation:
                 str(nsync_dir / "config.c"),
                 "-lm"  # Link math library
             ]
-            
-            print("Compiling C library...")
+
             try:
                 result = subprocess.run(compile_cmd, capture_output=True, text=True, check=True)
-                print("✓ C library compiled successfully")
             except subprocess.CalledProcessError as e:
-                print(f"Compilation failed: {e.stderr}")
                 raise RuntimeError(f"Failed to compile C library: {e.stderr}")
-        else:
-            print("✓ Using existing C library")
     
     def _load_library(self):
         """Load the compiled C library."""
         if not self.lib_path or not self.lib_path.exists():
             raise FileNotFoundError("Compiled library not found")
-        
+
         self.lib = ctypes.CDLL(str(self.lib_path))
-        
+
         # Define Network structure
         class Network(ctypes.Structure):
             _fields_ = [
