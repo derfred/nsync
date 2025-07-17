@@ -5,7 +5,7 @@ BUILD_DIR=build
 SRC_DIR=nsync
 
 # Source files
-SRC_FILES=$(SRC_DIR)/nsync.c $(SRC_DIR)/config.c
+SRC_FILES=$(SRC_DIR)/nsync.c $(SRC_DIR)/nsync_core.c $(SRC_DIR)/config.c
 
 # Object files for native and cross compilation
 OBJ_FILES=$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_FILES))

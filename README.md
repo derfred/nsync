@@ -1,7 +1,7 @@
 nsync - event based neural network simulator for pulse coupled neurons
 ======================================================================
 
-This package implements a JavaScript based simulator for pulse coupled neural networks with delay as introduced in:
+This package implements a C & Python based simulator for pulse coupled neural networks with delay as introduced in:
 
 > U. Ernst, K. Pawelzik, and T. Geisel. Synchronization induced by temporal
 > delays in pulse-coupled oscillators. Phys. Rev. Lett., 74, 1995.
@@ -14,27 +14,40 @@ The algorithm is based on the concept of numerically exact integration as presen
 > http://www.springerlink.com/content/08legf57tjkc6nj0 (no publically available version)
 
 
-Includes some basic visualization and the ability to interactively perturb individual neurons.
+### Basic Usage
 
-1. Download
-2. Open examples/html/index.html in a modern browser (tested in Firefox 3.5 and Chrome 6)
-3. pure bliss
+```python
+from nsync_python import NetworkSimulation
 
+# Create simulation instance
+sim = NetworkSimulation()
 
-Batch simulations
------------------
+# Run simulation with custom parameters
+result = sim.run_simulation(
+    N=5,           # Number of neurons
+    Tmax=100.0,    # Simulation time
+    strength=0.05, # Coupling strength
+    delay=1.59,    # Spike delay
+    I=1.04,        # Base current
+    seed=42        # Random seed
+)
 
-This package can also be run from the command line for batch simulation. See the examples/node directory for details. The command line mode requires node.js.
+# Access results
+print(f"Simulation ran for {len(result['times'])} time steps")
+print(f"Phase data shape: {result['phases'].shape}")  # (timesteps, neurons)
+print(f"Number of events: {len(result['events'])}")
+```
 
+### Extract Spike Information
 
-Run Tests in Browser
---------------------
+```python
+# Get spike times for each neuron
+spikes = sim.get_spikes(result)
+for neuron_id, spike_times in spikes.items():
+    print(f"Neuron {neuron_id}: {len(spike_times)} spikes")
+    print(f"  First few spike times: {spike_times[:3]}")
 
-Open tests/index.html in a modern browser
-
-
-Run Tests in node.js
---------------------
-
-1. install kof/node-qunit
-2. cli -c ./src/base.js -t ./tests/test_base.js
+# Convert to binary spike trains
+spike_trains, time_bins = sim.get_spike_trains(result, dt=0.1)
+print(f"Spike train shape: {spike_trains.shape}")  # (time_bins, neurons)
+```
