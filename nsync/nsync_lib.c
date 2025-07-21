@@ -11,7 +11,9 @@
 struct SimulationResult {
     double *times;
     double *phases_data;  // flattened array: phases[time_step * N + neuron_id]
-    char *events_data;    // flattened array: events[time_step * (N+3)]
+    int *spike_maps;      // array of spike bitmaps for each timestep
+    int *reset_maps;      // array of natural reset bitmaps for each timestep  
+    int *total_reset_maps; // array of total reset bitmaps for each timestep
     int num_timesteps;
     int N;
     int capacity;
@@ -25,7 +27,9 @@ struct SimulationResult* init_simulation_result(int N, int initial_capacity) {
     result->num_timesteps = 0;
     result->times = malloc(sizeof(double) * initial_capacity);
     result->phases_data = malloc(sizeof(double) * initial_capacity * N);
-    result->events_data = malloc(sizeof(char) * initial_capacity * (N + 3));
+    result->spike_maps = malloc(sizeof(int) * initial_capacity);
+    result->reset_maps = malloc(sizeof(int) * initial_capacity);
+    result->total_reset_maps = malloc(sizeof(int) * initial_capacity);
     return result;
 }
 
@@ -35,12 +39,15 @@ void resize_simulation_result(struct SimulationResult *result) {
         result->capacity *= 2;
         result->times = realloc(result->times, sizeof(double) * result->capacity);
         result->phases_data = realloc(result->phases_data, sizeof(double) * result->capacity * result->N);
-        result->events_data = realloc(result->events_data, sizeof(char) * result->capacity * (result->N + 3));
+        result->spike_maps = realloc(result->spike_maps, sizeof(int) * result->capacity);
+        result->reset_maps = realloc(result->reset_maps, sizeof(int) * result->capacity);
+        result->total_reset_maps = realloc(result->total_reset_maps, sizeof(int) * result->capacity);
     }
 }
 
 // Add a timestep to results
-void add_timestep(struct SimulationResult *result, double time, double *phases, char *event) {
+void add_timestep(struct SimulationResult *result, double time, double *phases, 
+                 int spike_map, int reset_map, int total_reset_map) {
     resize_simulation_result(result);
     
     int idx = result->num_timesteps;
@@ -51,11 +58,10 @@ void add_timestep(struct SimulationResult *result, double time, double *phases, 
         result->phases_data[idx * result->N + i] = phases[i];
     }
     
-    // Copy event string
-    int event_len = result->N + 3;
-    for (int i = 0; i < event_len; i++) {
-        result->events_data[idx * event_len + i] = event[i];
-    }
+    // Store bitmap data
+    result->spike_maps[idx] = spike_map;
+    result->reset_maps[idx] = reset_map;
+    result->total_reset_maps[idx] = total_reset_map;
     
     result->num_timesteps++;
 }
@@ -65,7 +71,9 @@ void free_simulation_result(struct SimulationResult *result) {
     if (result) {
         free(result->times);
         free(result->phases_data);
-        free(result->events_data);
+        free(result->spike_maps);
+        free(result->reset_maps);
+        free(result->total_reset_maps);
         free(result);
     }
 }
@@ -112,9 +120,11 @@ void free_network(struct Network *network) {
 }
 
 // Callback function for capturing timestep data
-void capture_timestep_callback(double time, double *phases, char *event, void *context) {
+void capture_timestep_callback(double time, double *phases, 
+                              int spike_map, int reset_map, int total_reset_map,
+                              void *context) {
     struct SimulationResult *result = (struct SimulationResult *)context;
-    add_timestep(result, time, phases, event);
+    add_timestep(result, time, phases, spike_map, reset_map, total_reset_map);
 }
 
 // Run simulation and capture results

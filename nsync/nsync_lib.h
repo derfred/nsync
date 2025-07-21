@@ -6,7 +6,9 @@
 struct SimulationResult {
     double *times;
     double *phases_data;  // flattened array: phases[time_step * N + neuron_id]
-    char *events_data;    // flattened array: events[time_step * (N+3)]
+    int *spike_maps;      // array of spike bitmaps for each timestep
+    int *reset_maps;      // array of natural reset bitmaps for each timestep  
+    int *total_reset_maps; // array of total reset bitmaps for each timestep
     int num_timesteps;
     int N;
     int capacity;

@@ -30,7 +30,9 @@ void build_bitmap(char * buffer, int bitmap, int N, char klass) {
 
 // Unified simulation core that accepts callbacks for output handling
 void run_network_core(struct Network *network, 
-                     void (*on_timestep)(double time, double *phases, char *event, void *context),
+                     void (*on_timestep)(double time, double *phases, 
+                                       int spike_map, int reset_map, int total_reset_map,
+                                       void *context),
                      void *context) {
   const int suffix_size = network->N + 2 + 1;
   char * suffix = (char *) malloc(sizeof(char) * suffix_size);
@@ -72,19 +74,19 @@ void run_network_core(struct Network *network,
       network->phases[i] += dt / network->periods[i];
     }
 
-    int reset = 0;
+    int total_reset_map = 0;
     if (next_reset < next_spike) {
-      build_bitmap(suffix, reset_map, network->N, 'r');
       // 3.a. if reset -> issue spikes
       for (int i = 0; i < network->N; i++) {
         if (reset_map & (1 << i)) {
           network->resets[i] = _now;
           network->phases[i] = 0;
-          reset |= 1 << i;
+          total_reset_map |= 1 << i;
         }
       }
+      // No spikes occurred, so spike_map should be 0
+      spike_map = 0;
     } else {
-      build_bitmap(suffix, spike_map, network->N, 's');
       // 3.b. if spike -> jump phases, reset if necessary
       for (int i = 0; i < network->N; i++) {
         double eps = 0;
@@ -99,17 +101,19 @@ void run_network_core(struct Network *network,
           network->phases[i] = gf(network, i, eps);
         }
         if (network->phases[i] >= 1) {
-          reset |= 1 << i;
+          total_reset_map |= 1 << i;
           network->resets[i] = _now;
           network->phases[i] = 0;
         }
       }
+      // No natural resets occurred, so reset_map should be 0
+      reset_map = 0;
     }
     network->now = _now;
     
-    // Call the output handler callback
+    // Call the output handler callback with bitmap information
     if (on_timestep) {
-      on_timestep(network->now, network->phases, suffix, context);
+      on_timestep(network->now, network->phases, spike_map, reset_map, total_reset_map, context);
     }
   }
   

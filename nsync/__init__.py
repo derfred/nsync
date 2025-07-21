@@ -86,7 +86,9 @@ class NetworkSimulation:
             _fields_ = [
                 ("times", ctypes.POINTER(ctypes.c_double)),
                 ("phases_data", ctypes.POINTER(ctypes.c_double)),
-                ("events_data", ctypes.POINTER(ctypes.c_char)),
+                ("spike_maps", ctypes.POINTER(ctypes.c_int)),
+                ("reset_maps", ctypes.POINTER(ctypes.c_int)),
+                ("total_reset_maps", ctypes.POINTER(ctypes.c_int)),
                 ("num_timesteps", ctypes.c_int),
                 ("N", ctypes.c_int),
                 ("capacity", ctypes.c_int),
@@ -192,31 +194,51 @@ class NetworkSimulation:
             ])
             phases = phases_flat.reshape(result.num_timesteps, result.N)
             
-            # Extract events
+            # Extract events from bitmap data
             events = []
-            event_len = result.N + 3
             for i in range(result.num_timesteps):
-                event_str = ""
-                for j in range(event_len):
-                    char_val = result.events_data[i * event_len + j]
-                    # Convert bytes to int if needed
-                    if isinstance(char_val, bytes):
-                        char_val = ord(char_val) if len(char_val) > 0 else 0
-                    event_str += chr(char_val) if char_val != 0 else ""
+                spike_map = result.spike_maps[i]
+                reset_map = result.reset_maps[i]
+                total_reset_map = result.total_reset_maps[i]
                 
-                # Parse event string (format: "r\t01010" or "s\t10001")
-                if len(event_str) >= 2:
-                    event_type = event_str[0]  # 'r' for reset, 's' for spike
-                    if len(event_str) > 2:
-                        bitmap_str = event_str[2:]  # Skip type and tab
-                        active_neurons = [
-                            idx for idx, bit in enumerate(bitmap_str) 
-                            if bit == '1' and idx < N
-                        ]
+                # Extract spike events
+                if spike_map > 0:
+                    spike_neurons = [
+                        neuron_id for neuron_id in range(N)
+                        if spike_map & (1 << neuron_id)
+                    ]
+                    if spike_neurons:
                         events.append({
                             'time': times[i],
-                            'type': 'reset' if event_type == 'r' else 'spike',
-                            'neurons': active_neurons
+                            'type': 'spike',
+                            'neurons': spike_neurons
+                        })
+                
+                # Extract reset events (natural resets)
+                if reset_map > 0:
+                    reset_neurons = [
+                        neuron_id for neuron_id in range(N)
+                        if reset_map & (1 << neuron_id)
+                    ]
+                    if reset_neurons:
+                        events.append({
+                            'time': times[i],
+                            'type': 'reset',
+                            'neurons': reset_neurons
+                        })
+                
+                # Extract spike-induced reset events
+                spike_induced_reset_map = total_reset_map & ~reset_map
+                if spike_induced_reset_map > 0:
+                    spike_induced_reset_neurons = [
+                        neuron_id for neuron_id in range(N)
+                        if spike_induced_reset_map & (1 << neuron_id)
+                    ]
+                    if spike_induced_reset_neurons:
+                        events.append({
+                            'time': times[i],
+                            'type': 'spike_induced_reset',
+                            'neurons': spike_induced_reset_neurons
                         })
             
             # Clean up C memory
@@ -259,6 +281,74 @@ class NetworkSimulation:
                     spikes[neuron_id].append(event['time'])
         
         return spikes
+    
+    def get_detailed_events(self, simulation_result: Dict) -> Dict:
+        """Extract detailed event information including spike-induced resets.
+        
+        Args:
+            simulation_result: Result dictionary from run_simulation()
+        
+        Returns:
+            Dictionary with separate lists for different event types:
+            - 'spikes': List of (time, neuron_list) tuples for spike events
+            - 'natural_resets': List of (time, neuron_list) tuples for natural reset events  
+            - 'spike_induced_resets': List of (time, neuron_list) tuples for spike-induced resets
+        """
+        spikes = []
+        natural_resets = []
+        spike_induced_resets = []
+        
+        for event in simulation_result['events']:
+            time_neurons = (event['time'], event['neurons'])
+            
+            if event['type'] == 'spike':
+                spikes.append(time_neurons)
+            elif event['type'] == 'reset':
+                natural_resets.append(time_neurons)
+            elif event['type'] == 'spike_induced_reset':
+                spike_induced_resets.append(time_neurons)
+        
+        return {
+            'spikes': spikes,
+            'natural_resets': natural_resets,
+            'spike_induced_resets': spike_induced_resets
+        }
+    
+    def get_reset_analysis(self, simulation_result: Dict) -> Dict:
+        """Analyze reset patterns distinguishing natural vs spike-induced resets.
+        
+        Args:
+            simulation_result: Result dictionary from run_simulation()
+        
+        Returns:
+            Dictionary with reset analysis for each neuron:
+            - 'natural_resets': Dict of neuron_id -> list of natural reset times
+            - 'spike_induced_resets': Dict of neuron_id -> list of spike-induced reset times
+            - 'total_resets': Dict of neuron_id -> list of all reset times
+        """
+        N = simulation_result['parameters']['N']
+        natural_resets = {i: [] for i in range(N)}
+        spike_induced_resets = {i: [] for i in range(N)}
+        total_resets = {i: [] for i in range(N)}
+        
+        for event in simulation_result['events']:
+            for neuron_id in event['neurons']:
+                if event['type'] == 'reset':
+                    natural_resets[neuron_id].append(event['time'])
+                    total_resets[neuron_id].append(event['time'])
+                elif event['type'] == 'spike_induced_reset':
+                    spike_induced_resets[neuron_id].append(event['time'])
+                    total_resets[neuron_id].append(event['time'])
+        
+        # Sort all reset times
+        for neuron_id in range(N):
+            total_resets[neuron_id].sort()
+        
+        return {
+            'natural_resets': natural_resets,
+            'spike_induced_resets': spike_induced_resets,
+            'total_resets': total_resets
+        }
     
     def get_spike_trains(self, simulation_result: Dict, dt: float = 0.1) -> np.ndarray:
         """Convert spike times to binary spike trains.
@@ -356,4 +446,26 @@ if __name__ == "__main__":
     for neuron_id, spike_times in spikes2.items():
         print(f"  Neuron {neuron_id}: {len(spike_times)} spikes")
         if spike_times:
-            print(f"    First spike: {spike_times[0]:.3f}") 
+            print(f"    First spike: {spike_times[0]:.3f}")
+    
+    # Demonstrate new detailed event analysis
+    print(f"\nDetailed event analysis for custom phases simulation:")
+    detailed_events = sim.get_detailed_events(result2)
+    print(f"- {len(detailed_events['spikes'])} spike events")
+    print(f"- {len(detailed_events['natural_resets'])} natural reset events")
+    print(f"- {len(detailed_events['spike_induced_resets'])} spike-induced reset events")
+    
+    # Show first few events of each type
+    if detailed_events['spikes']:
+        print(f"  First spike event: time {detailed_events['spikes'][0][0]:.3f}, neurons {detailed_events['spikes'][0][1]}")
+    if detailed_events['spike_induced_resets']:
+        print(f"  First spike-induced reset: time {detailed_events['spike_induced_resets'][0][0]:.3f}, neurons {detailed_events['spike_induced_resets'][0][1]}")
+    
+    # Analyze reset patterns
+    reset_analysis = sim.get_reset_analysis(result2)
+    print(f"\nReset pattern analysis:")
+    for neuron_id in range(3):
+        natural_count = len(reset_analysis['natural_resets'][neuron_id])
+        spike_induced_count = len(reset_analysis['spike_induced_resets'][neuron_id])
+        total_count = len(reset_analysis['total_resets'][neuron_id])
+        print(f"  Neuron {neuron_id}: {total_count} total resets ({natural_count} natural, {spike_induced_count} spike-induced)") 
