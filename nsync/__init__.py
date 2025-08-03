@@ -1,394 +1,53 @@
 #!/usr/bin/env python3
 
-import ctypes
+"""
+Neural network simulation package with pattern matching capabilities.
+
+This package provides a Python interface to the nsync neural network simulator,
+including:
+- NetworkSimulation class for running simulations
+- SimulationResult class with pattern query capabilities  
+- Fluent interface for defining complex event patterns
+- Pattern matching and statistical analysis tools
+"""
+
 import numpy as np
-import os
-import subprocess
-import tempfile
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional
-import time
 
-class NetworkSimulation:
-    """Python interface to the nsync network simulation."""
-    
-    def __init__(self, auto_compile: bool = True):
-        """Initialize the network simulation interface.
-        
-        Args:
-            auto_compile: Whether to automatically compile the C library if needed
-        """
-        self.lib = None
-        self.lib_path = None
-        
-        if auto_compile:
-            self._compile_library()
-            self._load_library()
-    
-    def _compile_library(self):
-        """Compile the C library as a shared object."""
-        nsync_dir = Path(__file__).parent
-        
-        required_files = ["nsync.h", "nsync_lib.c", "nsync_lib.h", "nsync_core.c", "nsync_core.h", "config.c"]
-        for file in required_files:
-            if not (nsync_dir / file).exists():
-                raise FileNotFoundError(f"Required file {file} not found in nsync directory")
-        
-        # Compile as shared library
-        self.lib_path = nsync_dir / "libnsync.so"
-        
-        # Check if library already exists and source files haven't changed
-        needs_compile = True
-        if self.lib_path.exists():
-            lib_mtime = self.lib_path.stat().st_mtime
-            source_files = ["nsync_lib.c", "nsync_core.c", "config.c", "nsync.h", "nsync_lib.h", "nsync_core.h"]
-            max_source_mtime = max((nsync_dir / f).stat().st_mtime for f in source_files)
-            needs_compile = max_source_mtime > lib_mtime
-        
-        if needs_compile:
-            compile_cmd = [
-                "gcc", "-shared", "-fPIC", "-o", str(self.lib_path),
-                str(nsync_dir / "nsync_lib.c"),
-                str(nsync_dir / "nsync_core.c"),
-                str(nsync_dir / "config.c"),
-                "-lm"  # Link math library
-            ]
-
-            try:
-                result = subprocess.run(compile_cmd, capture_output=True, text=True, check=True)
-            except subprocess.CalledProcessError as e:
-                raise RuntimeError(f"Failed to compile C library: {e.stderr}")
-    
-    def _load_library(self):
-        """Load the compiled C library."""
-        if not self.lib_path or not self.lib_path.exists():
-            raise FileNotFoundError("Compiled library not found")
-
-        self.lib = ctypes.CDLL(str(self.lib_path))
-
-        # Define Network structure
-        class Network(ctypes.Structure):
-            _fields_ = [
-                ("N", ctypes.c_int),
-                ("now", ctypes.c_double),
-                ("Tmax", ctypes.c_double),
-                ("delay", ctypes.c_double),
-                ("strength", ctypes.c_double),
-                ("Ijitter", ctypes.c_double),
-                ("currents", ctypes.POINTER(ctypes.c_double)),
-                ("periods", ctypes.POINTER(ctypes.c_double)),
-                ("phases", ctypes.POINTER(ctypes.c_double)),
-                ("resets", ctypes.POINTER(ctypes.c_double)),
-            ]
-        
-        # Define SimulationResult structure
-        class SimulationResult(ctypes.Structure):
-            _fields_ = [
-                ("times", ctypes.POINTER(ctypes.c_double)),
-                ("phases_data", ctypes.POINTER(ctypes.c_double)),
-                ("spike_maps", ctypes.POINTER(ctypes.c_int)),
-                ("reset_maps", ctypes.POINTER(ctypes.c_int)),
-                ("total_reset_maps", ctypes.POINTER(ctypes.c_int)),
-                ("num_timesteps", ctypes.c_int),
-                ("N", ctypes.c_int),
-                ("capacity", ctypes.c_int),
-            ]
-        
-        self.Network = Network
-        self.SimulationResult = SimulationResult
-        
-        # Define function signatures
-        self.lib.init_network.argtypes = [
-            ctypes.POINTER(Network),
-            ctypes.c_int,    # N
-            ctypes.c_double, # Tmax
-            ctypes.c_double, # delay
-            ctypes.c_double, # strength
-            ctypes.c_double, # I
-            ctypes.c_double, # Ijitter
-            ctypes.c_uint,   # seed
-            ctypes.POINTER(ctypes.c_double)  # initial_phases (NULL for random)
-        ]
-        self.lib.init_network.restype = None
-        
-        self.lib.run_network_simulation.argtypes = [ctypes.POINTER(Network)]
-        self.lib.run_network_simulation.restype = ctypes.POINTER(SimulationResult)
-        
-        self.lib.free_network.argtypes = [ctypes.POINTER(Network)]
-        self.lib.free_network.restype = None
-        
-        self.lib.free_simulation_result.argtypes = [ctypes.POINTER(SimulationResult)]
-        self.lib.free_simulation_result.restype = None
-    
-    def run_simulation(
-        self,
-        N: int = 5,
-        Tmax: float = 150.0,
-        delay: float = 1.59,
-        strength: float = 0.025,
-        I: float = 1.04,
-        Ijitter: float = 0.0,
-        seed: Optional[int] = None,
-        initial_phases: Optional[List[float]] = None
-    ) -> Dict:
-        """Run a network simulation with the given parameters.
-        
-        Args:
-            N: Number of neurons
-            Tmax: Maximum simulation time
-            delay: Spike delay
-            strength: Coupling strength
-            I: Base current
-            Ijitter: Current jitter between neurons
-            seed: Random seed (uses current time if None)
-            initial_phases: List of initial phases for each neuron (0-1), 
-                          if None uses random phases
-        
-        Returns:
-            Dictionary containing:
-            - 'times': Array of time points
-            - 'phases': 2D array of phases (timesteps x neurons)
-            - 'events': List of event dictionaries with 'time', 'type', 'neurons'
-            - 'parameters': Dictionary of simulation parameters
-        """
-        if self.lib is None:
-            raise RuntimeError("Library not loaded. Call _load_library() first.")
-        
-        if seed is None:
-            seed = int(time.time() * 1000000) % (2**32)
-        
-        # Validate initial_phases if provided
-        if initial_phases is not None:
-            if len(initial_phases) != N:
-                raise ValueError(f"initial_phases must have length N={N}, got {len(initial_phases)}")
-            if not all(0 <= phase <= 1 for phase in initial_phases):
-                raise ValueError("All initial phases must be between 0 and 1")
-        
-        # Create network structure
-        network = self.Network()
-        
-        # Initialize network
-        if initial_phases is None:
-            # Use random initialization
-            self.lib.init_network(
-                ctypes.byref(network), N, Tmax, delay, strength, I, Ijitter, seed, None
-            )
-        else:
-            # Use specified initial phases
-            phases_array = (ctypes.c_double * N)(*initial_phases)
-            self.lib.init_network(
-                ctypes.byref(network), N, Tmax, delay, strength, I, Ijitter, seed, phases_array
-            )
-        
-        try:
-            # Run simulation
-            result_ptr = self.lib.run_network_simulation(ctypes.byref(network))
-            result = result_ptr.contents
-            
-            # Extract times
-            times = np.array([result.times[i] for i in range(result.num_timesteps)])
-            
-            # Extract phases (reshape to timesteps x neurons)
-            phases_flat = np.array([
-                result.phases_data[i] for i in range(result.num_timesteps * result.N)
-            ])
-            phases = phases_flat.reshape(result.num_timesteps, result.N)
-            
-            # Extract events from bitmap data
-            events = []
-            for i in range(result.num_timesteps):
-                spike_map = result.spike_maps[i]
-                reset_map = result.reset_maps[i]
-                total_reset_map = result.total_reset_maps[i]
-                
-                # Extract spike events
-                if spike_map > 0:
-                    spike_neurons = [
-                        neuron_id for neuron_id in range(N)
-                        if spike_map & (1 << neuron_id)
-                    ]
-                    if spike_neurons:
-                        events.append({
-                            'time': times[i],
-                            'type': 'spike',
-                            'neurons': spike_neurons
-                        })
-                
-                # Extract reset events (natural resets)
-                if reset_map > 0:
-                    reset_neurons = [
-                        neuron_id for neuron_id in range(N)
-                        if reset_map & (1 << neuron_id)
-                    ]
-                    if reset_neurons:
-                        events.append({
-                            'time': times[i],
-                            'type': 'reset',
-                            'neurons': reset_neurons
-                        })
-                
-                # Extract spike-induced reset events
-                spike_induced_reset_map = total_reset_map & ~reset_map
-                if spike_induced_reset_map > 0:
-                    spike_induced_reset_neurons = [
-                        neuron_id for neuron_id in range(N)
-                        if spike_induced_reset_map & (1 << neuron_id)
-                    ]
-                    if spike_induced_reset_neurons:
-                        events.append({
-                            'time': times[i],
-                            'type': 'spike_induced_reset',
-                            'neurons': spike_induced_reset_neurons
-                        })
-            
-            # Clean up C memory
-            self.lib.free_simulation_result(result_ptr)
-            
-            return {
-                'times': times,
-                'phases': phases,
-                'events': events,
-                'parameters': {
-                    'N': N,
-                    'Tmax': Tmax,
-                    'delay': delay,
-                    'strength': strength,
-                    'I': I,
-                    'Ijitter': Ijitter,
-                    'seed': seed,
-                    'initial_phases': initial_phases
-                }
-            }
-        
-        finally:
-            # Clean up network memory
-            self.lib.free_network(ctypes.byref(network))
-    
-    def get_spikes(self, simulation_result: Dict) -> Dict:
-        """Extract spike times for each neuron from simulation results.
-        
-        Args:
-            simulation_result: Result dictionary from run_simulation()
-        
-        Returns:
-            Dictionary with neuron indices as keys and lists of spike times as values
-        """
-        spikes = {i: [] for i in range(simulation_result['parameters']['N'])}
-        
-        for event in simulation_result['events']:
-            if event['type'] == 'reset':  # Reset events indicate spikes
-                for neuron_id in event['neurons']:
-                    spikes[neuron_id].append(event['time'])
-        
-        return spikes
-    
-    def get_detailed_events(self, simulation_result: Dict) -> Dict:
-        """Extract detailed event information including spike-induced resets.
-        
-        Args:
-            simulation_result: Result dictionary from run_simulation()
-        
-        Returns:
-            Dictionary with separate lists for different event types:
-            - 'spikes': List of (time, neuron_list) tuples for spike events
-            - 'natural_resets': List of (time, neuron_list) tuples for natural reset events  
-            - 'spike_induced_resets': List of (time, neuron_list) tuples for spike-induced resets
-        """
-        spikes = []
-        natural_resets = []
-        spike_induced_resets = []
-        
-        for event in simulation_result['events']:
-            time_neurons = (event['time'], event['neurons'])
-            
-            if event['type'] == 'spike':
-                spikes.append(time_neurons)
-            elif event['type'] == 'reset':
-                natural_resets.append(time_neurons)
-            elif event['type'] == 'spike_induced_reset':
-                spike_induced_resets.append(time_neurons)
-        
-        return {
-            'spikes': spikes,
-            'natural_resets': natural_resets,
-            'spike_induced_resets': spike_induced_resets
-        }
-    
-    def get_reset_analysis(self, simulation_result: Dict) -> Dict:
-        """Analyze reset patterns distinguishing natural vs spike-induced resets.
-        
-        Args:
-            simulation_result: Result dictionary from run_simulation()
-        
-        Returns:
-            Dictionary with reset analysis for each neuron:
-            - 'natural_resets': Dict of neuron_id -> list of natural reset times
-            - 'spike_induced_resets': Dict of neuron_id -> list of spike-induced reset times
-            - 'total_resets': Dict of neuron_id -> list of all reset times
-        """
-        N = simulation_result['parameters']['N']
-        natural_resets = {i: [] for i in range(N)}
-        spike_induced_resets = {i: [] for i in range(N)}
-        total_resets = {i: [] for i in range(N)}
-        
-        for event in simulation_result['events']:
-            for neuron_id in event['neurons']:
-                if event['type'] == 'reset':
-                    natural_resets[neuron_id].append(event['time'])
-                    total_resets[neuron_id].append(event['time'])
-                elif event['type'] == 'spike_induced_reset':
-                    spike_induced_resets[neuron_id].append(event['time'])
-                    total_resets[neuron_id].append(event['time'])
-        
-        # Sort all reset times
-        for neuron_id in range(N):
-            total_resets[neuron_id].sort()
-        
-        return {
-            'natural_resets': natural_resets,
-            'spike_induced_resets': spike_induced_resets,
-            'total_resets': total_resets
-        }
-    
-    def get_spike_trains(self, simulation_result: Dict, dt: float = 0.1) -> np.ndarray:
-        """Convert spike times to binary spike trains.
-        
-        Args:
-            simulation_result: Result dictionary from run_simulation()
-            dt: Time bin size for spike trains
-        
-        Returns:
-            2D numpy array (time_bins x neurons) of binary spike trains
-        """
-        Tmax = simulation_result['parameters']['Tmax']
-        N = simulation_result['parameters']['N']
-        spikes = self.get_spikes(simulation_result)
-        
-        time_bins = np.arange(0, Tmax + dt, dt)
-        spike_trains = np.zeros((len(time_bins), N))
-        
-        for neuron_id, spike_times in spikes.items():
-            for spike_time in spike_times:
-                bin_idx = int(spike_time / dt)
-                if bin_idx < len(time_bins):
-                    spike_trains[bin_idx, neuron_id] = 1
-        
-        return spike_trains, time_bins
-
+# Import core simulation functionality
+try:
+    from .simulation import NetworkSimulation, SimulationResult
+    from .patterns import EventPattern, PatternMatcher, PatternQueryBuilder, create_pattern, apply_pattern, apply_pattern_to_multiple, analyze_pattern_across_results
+except ImportError:
+    # Handle direct execution of this module
+    from simulation import NetworkSimulation, SimulationResult
+    from patterns import EventPattern, PatternMatcher, PatternQueryBuilder, create_pattern, apply_pattern, apply_pattern_to_multiple, analyze_pattern_across_results
 
 # Convenience function for quick simulations
-def run_quick_simulation(**kwargs) -> Dict:
+def run_quick_simulation(**kwargs) -> SimulationResult:
     """Run a simulation with default parameters.
     
     Args:
         **kwargs: Parameters to pass to run_simulation()
     
     Returns:
-        Simulation result dictionary
+        SimulationResult object
     """
     sim = NetworkSimulation()
     return sim.run_simulation(**kwargs)
 
+# Package exports
+__all__ = [
+    'NetworkSimulation',
+    'SimulationResult', 
+    'EventPattern',
+    'PatternMatcher',
+    'PatternQueryBuilder',
+    'create_pattern',
+    'apply_pattern',
+    'apply_pattern_to_multiple',
+    'analyze_pattern_across_results',
+    'run_quick_simulation'
+]
 
 if __name__ == "__main__":
     # Example usage
@@ -407,11 +66,11 @@ if __name__ == "__main__":
     )
     
     print(f"Simulation completed!")
-    print(f"- {len(result1['times'])} time steps")
-    print(f"- {len(result1['events'])} events")
-    print(f"- Phase data shape: {result1['phases'].shape}")
-    print(f"- Initial phases: {result1['parameters']['initial_phases']}")
-    print(f"- First few phases: {result1['phases'][0]}")
+    print(f"- {len(result1.times)} time steps")
+    print(f"- {len(result1.events)} events")
+    print(f"- Phase data shape: {result1.phases.shape}")
+    print(f"- Initial phases: {result1.parameters['initial_phases']}")
+    print(f"- First few phases: {result1.phases[0]}")
     
     # Run simulation with specified initial phases
     print("\n2. Simulation with specified initial phases:")
@@ -425,15 +84,15 @@ if __name__ == "__main__":
     )
     
     print(f"Simulation completed!")
-    print(f"- {len(result2['times'])} time steps")
-    print(f"- {len(result2['events'])} events")
-    print(f"- Phase data shape: {result2['phases'].shape}")
-    print(f"- Initial phases: {result2['parameters']['initial_phases']}")
-    print(f"- First few phases: {result2['phases'][0]}")
+    print(f"- {len(result2.times)} time steps")
+    print(f"- {len(result2.events)} events")
+    print(f"- Phase data shape: {result2.phases.shape}")
+    print(f"- Initial phases: {result2.parameters['initial_phases']}")
+    print(f"- First few phases: {result2.phases[0]}")
     
     # Get spike times for both simulations
-    spikes1 = sim.get_spikes(result1)
-    spikes2 = sim.get_spikes(result2)
+    spikes1 = result1.get_spikes()
+    spikes2 = result2.get_spikes()
     
     print(f"\nSpike times comparison:")
     print("Random initial phases:")
@@ -450,7 +109,7 @@ if __name__ == "__main__":
     
     # Demonstrate new detailed event analysis
     print(f"\nDetailed event analysis for custom phases simulation:")
-    detailed_events = sim.get_detailed_events(result2)
+    detailed_events = result2.get_detailed_events()
     print(f"- {len(detailed_events['spikes'])} spike events")
     print(f"- {len(detailed_events['natural_resets'])} natural reset events")
     print(f"- {len(detailed_events['spike_induced_resets'])} spike-induced reset events")
@@ -461,11 +120,69 @@ if __name__ == "__main__":
     if detailed_events['spike_induced_resets']:
         print(f"  First spike-induced reset: time {detailed_events['spike_induced_resets'][0][0]:.3f}, neurons {detailed_events['spike_induced_resets'][0][1]}")
     
-    # Analyze reset patterns
-    reset_analysis = sim.get_reset_analysis(result2)
-    print(f"\nReset pattern analysis:")
-    for neuron_id in range(3):
-        natural_count = len(reset_analysis['natural_resets'][neuron_id])
-        spike_induced_count = len(reset_analysis['spike_induced_resets'][neuron_id])
-        total_count = len(reset_analysis['total_resets'][neuron_id])
-        print(f"  Neuron {neuron_id}: {total_count} total resets ({natural_count} natural, {spike_induced_count} spike-induced)") 
+    # Demonstrate pattern matching system
+    print(f"\n=== Event Pattern Matching Examples ===")
+    
+    # Example 1: Simple pattern with exact neuron specification
+    print(f"\n1. Looking for spike -> spike_induced_reset pattern")
+    pattern1 = result2.query_events().spike().any_neurons().spike_induced_reset().any_neurons().build()
+    matches1 = result2.find_patterns(pattern1)
+    print(f"   Found {len(matches1)} matches")
+    
+    # Example 2: Group-based permutation matching
+    print(f"\n2. Group-based pattern: 2 neurons spike -> 1 neuron spike_induced_reset")
+    pattern2 = result2.query_events().spike().groups(2).spike_induced_reset().groups(1).build()
+    matches2 = result2.find_patterns(pattern2)
+    print(f"   Found {len(matches2)} matches")
+    
+    # Example 3: Complex multi-step pattern with wildcards
+    print(f"\n3. Complex pattern: spike -> anything -> reset")
+    pattern3 = result2.query_events().spike().anything().reset().build()
+    matches3 = result2.find_patterns(pattern3)
+    print(f"   Found {len(matches3)} matches")
+    
+    # Example 4: Pattern statistics analysis
+    if matches1:
+        print(f"\n4. Pattern statistics for spike->spike_induced_reset:")
+        stats = result2.analyze_pattern_statistics(pattern1)
+        print(f"   Total occurrences: {stats['count']}")
+        if stats['pattern_durations']:
+            avg_duration = np.mean(stats['pattern_durations'])
+            print(f"   Average pattern duration: {avg_duration:.6f}")
+        if stats['inter_match_intervals']:
+            avg_interval = np.mean(stats['inter_match_intervals'])
+            print(f"   Average interval between patterns: {avg_interval:.6f}")
+    
+    # Example 5: Show detailed match information
+    if matches1:
+        print(f"\n5. Detailed match information for first pattern match:")
+        match = matches1[0]
+        print(f"   Match span: events {match['start_index']}-{match['end_index']}")
+        print(f"   Time span: {match['start_time']:.6f} - {match['end_time']:.6f}")
+        print(f"   Matched events:")
+        for i, event in enumerate(match['matched_events']):
+            print(f"     {i+1}. {event['type']} at t={event['time']:.6f}, neurons={event['neurons']}")
+    
+    print(f"\n=== Pattern Matching Usage Guide ===")
+    print(f"""
+# Basic Usage Examples:
+
+# 1. Simple fluent interface
+pattern = result.query_events().spike().exactly(1, 3).spike_induced_reset().exactly(0).build()
+
+# 2. Permutation-invariant group matching  
+pattern = result.query_events().spike().groups(2, 1).spike_induced_reset().groups(1).build()
+
+# 3. References to previous steps
+pattern = result.query_events().spike().exactly(1, 3).reset().same_as(0).build()
+
+# 4. Wildcards and counting
+pattern = result.query_events().spike().anything().reset().count(2).build()
+
+# 5. Find matches
+matches = result.find_patterns(pattern, start_time=50.0, end_time=100.0)
+
+# 6. Analyze pattern statistics  
+stats = result.analyze_pattern_statistics(pattern)
+print(f"Pattern occurs {{stats['count']}} times")
+""")
