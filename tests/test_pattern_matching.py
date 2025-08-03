@@ -122,9 +122,9 @@ class TestPatternMatcher:
         matches = self.matcher.find_matches(self.events, pattern)
         
         assert len(matches) == 1
-        assert matches[0]['start_index'] == 0
-        assert matches[0]['end_index'] == 1
-        assert len(matches[0]['matched_events']) == 2
+        assert matches[0].start_index == 0
+        assert matches[0].end_index == 1
+        assert len(matches[0].matched_events) == 2
     
     def test_group_pattern_matching(self):
         """Test group-based pattern matching."""
@@ -138,9 +138,9 @@ class TestPatternMatcher:
         
         # Check first match
         match = matches[0]
-        assert len(match['matched_events']) == 2
-        assert len(match['matched_events'][0]['neurons']) == 2  # 2 neurons in spike
-        assert len(match['matched_events'][1]['neurons']) == 1  # 1 neuron in spike_induced_reset
+        assert len(match.matched_events) == 2
+        assert len(match.matched_events[0]['neurons']) == 2  # 2 neurons in spike
+        assert len(match.matched_events[1]['neurons']) == 1  # 1 neuron in spike_induced_reset
     
     def test_reference_pattern_matching(self):
         """Test reference-based pattern matching."""
@@ -151,8 +151,8 @@ class TestPatternMatcher:
         
         assert len(matches) == 1
         match = matches[0]
-        assert match['matched_events'][0]['neurons'] == [1, 3]
-        assert match['matched_events'][1]['neurons'] == [1, 3]
+        assert match.matched_events[0]['neurons'] == [1, 3]
+        assert match.matched_events[1]['neurons'] == [1, 3]
     
     def test_wildcard_pattern_matching(self):
         """Test wildcard pattern matching."""
@@ -164,7 +164,7 @@ class TestPatternMatcher:
         assert len(matches) >= 1
         # Each match should have exactly 3 events (spike, anything, reset)
         for match in matches:
-            assert len(match['matched_events']) == 3
+            assert len(match.matched_events) == 3
     
     def test_time_window_filtering(self):
         """Test time window filtering."""
@@ -176,7 +176,7 @@ class TestPatternMatcher:
         
         # Should only find spikes in the time window
         for match in matches:
-            assert 2.5 <= match['start_time'] <= 4.5
+            assert 2.5 <= match.start_time <= 4.5
     
     def test_count_pattern_matching(self):
         """Test count-based pattern matching."""
@@ -187,7 +187,7 @@ class TestPatternMatcher:
         
         # Should match all spike events with exactly 2 neurons
         for match in matches:
-            assert len(match['matched_events'][0]['neurons']) == 2
+            assert len(match.matched_events[0]['neurons']) == 2
 
 class TestSimulationResult:
     """Test SimulationResult class functionality."""
@@ -302,9 +302,9 @@ class TestIntegration:
         assert len(matches) == 1
         
         match = matches[0]
-        assert len(match['matched_events']) == 7
-        assert match['start_time'] == 95.0
-        assert match['end_time'] == 97.9
+        assert len(match.matched_events) == 7
+        assert match.start_time == 95.0
+        assert match.end_time == 97.9
     
     def test_permutation_invariant_pattern(self):
         """Test permutation-invariant pattern matching."""
@@ -339,7 +339,7 @@ class TestIntegration:
         assert len(matches) == 1
         
         match = matches[0]
-        assert len(match['matched_events']) == 7
+        assert len(match.matched_events) == 7
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -294,12 +294,12 @@ class TestIntegration:
         # Should return valid match structure
         assert isinstance(matches, list)
         for match in matches:
-            assert 'start_index' in match
-            assert 'end_index' in match
-            assert 'start_time' in match
-            assert 'end_time' in match
-            assert 'matched_events' in match
-            assert 'neuron_mapping' in match
+            assert hasattr(match, 'start_index')
+            assert hasattr(match, 'end_index')
+            assert hasattr(match, 'start_time')
+            assert hasattr(match, 'end_time')
+            assert hasattr(match, 'matched_events')
+            assert hasattr(match, 'neuron_mapping')
     
     def test_different_network_sizes(self):
         """Test simulation with different network sizes."""

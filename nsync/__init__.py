@@ -16,11 +16,11 @@ import numpy as np
 # Import core simulation functionality
 try:
     from .simulation import NetworkSimulation, SimulationResult
-    from .patterns import EventPattern, PatternMatcher, PatternQueryBuilder, create_pattern, apply_pattern, apply_pattern_to_multiple, analyze_pattern_across_results
+    from .patterns import EventPattern, PatternMatcher, PatternQueryBuilder, PatternMatch, create_pattern, apply_pattern, apply_pattern_to_multiple, analyze_pattern_across_results
 except ImportError:
     # Handle direct execution of this module
     from simulation import NetworkSimulation, SimulationResult
-    from patterns import EventPattern, PatternMatcher, PatternQueryBuilder, create_pattern, apply_pattern, apply_pattern_to_multiple, analyze_pattern_across_results
+    from patterns import EventPattern, PatternMatcher, PatternQueryBuilder, PatternMatch, create_pattern, apply_pattern, apply_pattern_to_multiple, analyze_pattern_across_results
 
 # Convenience function for quick simulations
 def run_quick_simulation(**kwargs) -> SimulationResult:
@@ -42,6 +42,7 @@ __all__ = [
     'EventPattern',
     'PatternMatcher',
     'PatternQueryBuilder',
+    'PatternMatch',
     'create_pattern',
     'apply_pattern',
     'apply_pattern_to_multiple',

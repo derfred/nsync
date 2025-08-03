@@ -19,10 +19,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 import time
 
-try:
-    from .patterns import PatternMatcher, PatternQueryBuilder, EventPattern
-except ImportError:
-    from patterns import PatternMatcher, PatternQueryBuilder, EventPattern
+from .patterns import PatternMatcher, PatternQueryBuilder, EventPattern, PatternMatch
 
 class SimulationResult:
     """Represents the results of a network simulation with pattern query capabilities."""
@@ -53,7 +50,7 @@ class SimulationResult:
     
     def find_patterns(self, pattern: EventPattern, 
                      start_time: Optional[float] = None, 
-                     end_time: Optional[float] = None) -> List[Dict]:
+                     end_time: Optional[float] = None) -> List[PatternMatch]:
         """Find all occurrences of a pattern in the simulation events.
         
         Args:
@@ -62,13 +59,13 @@ class SimulationResult:
             end_time: Optional end time for search window
             
         Returns:
-            List of match dictionaries
+            List of PatternMatch objects
         """
         return self._pattern_matcher.find_matches(self.events, pattern, start_time, end_time)
     
     def apply_external_pattern(self, pattern: EventPattern, 
                               start_time: Optional[float] = None, 
-                              end_time: Optional[float] = None) -> List[Dict]:
+                              end_time: Optional[float] = None) -> List[PatternMatch]:
         """Apply an externally created pattern to this simulation result.
         
         This is an alias for find_patterns() to make the API more explicit
@@ -80,7 +77,7 @@ class SimulationResult:
             end_time: Optional end time for search window
             
         Returns:
-            List of match dictionaries
+            List of PatternMatch objects
         """
         return self.find_patterns(pattern, start_time, end_time)
     
@@ -99,10 +96,10 @@ class SimulationResult:
         pattern_durations = []
         
         for i, match in enumerate(matches):
-            pattern_durations.append(match['end_time'] - match['start_time'])
+            pattern_durations.append(match.duration)
             
             if i > 0:
-                interval = match['start_time'] - matches[i-1]['end_time']
+                interval = match.start_time - matches[i-1].end_time
                 inter_match_intervals.append(interval)
         
         return {

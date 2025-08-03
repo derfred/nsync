@@ -14,6 +14,56 @@ event patterns in neural network simulations, with support for:
 from typing import Dict, List, Tuple, Optional, Any
 import numpy as np
 
+class PatternMatch:
+    """Wrapper object for pattern match results."""
+    
+    def __init__(self, start_index: int, end_index: int, start_time: float, 
+                 end_time: float, matched_events: List[Dict], neuron_mapping: Dict):
+        """Initialize a pattern match result.
+        
+        Args:
+            start_index: Index of first matched event
+            end_index: Index of last matched event
+            start_time: Time of first matched event
+            end_time: Time of last matched event
+            matched_events: List of matched event dictionaries
+            neuron_mapping: Mapping of neuron references
+        """
+        self.start_index = start_index
+        self.end_index = end_index
+        self.start_time = start_time
+        self.end_time = end_time
+        self.matched_events = matched_events
+        self.neuron_mapping = neuron_mapping
+    
+    @property
+    def duration(self) -> float:
+        """Duration of the pattern match."""
+        return self.end_time - self.start_time
+    
+    @property
+    def event_count(self) -> int:
+        """Number of events in the match."""
+        return len(self.matched_events)
+    
+    def __repr__(self) -> str:
+        return (f"PatternMatch(start_time={self.start_time:.4f}, "
+                f"end_time={self.end_time:.4f}, events={self.event_count})")
+    
+    def __str__(self) -> str:
+        return self.__repr__()
+    
+    def to_dict(self) -> Dict:
+        """Convert to dictionary format (for backward compatibility)."""
+        return {
+            'start_index': self.start_index,
+            'end_index': self.end_index,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'matched_events': self.matched_events,
+            'neuron_mapping': self.neuron_mapping
+        }
+
 class EventPattern:
     """Represents a pattern for matching sequences of neural network events."""
     
@@ -43,16 +93,25 @@ class PatternMatcher:
     
     def find_matches(self, events: List[Dict], pattern: EventPattern, 
                     start_time: Optional[float] = None, 
-                    end_time: Optional[float] = None) -> List[Dict]:
-        """Find all matches of the pattern in the event sequence."""
+                    end_time: Optional[float] = None) -> List[PatternMatch]:
+        """Find all matches of the pattern in the event sequence.
+        
+        Args:
+            events: List of event dictionaries
+            pattern: EventPattern to search for
+            start_time: Optional start time for search window
+            end_time: Optional end time for search window
+        
+        Returns:
+            List of PatternMatch objects
+        """
         matches = []
         filtered_events = self._filter_events_by_time(events, start_time, end_time)
-        
+
         for start_idx in range(len(filtered_events)):
             match = self._try_match_at_position(filtered_events, pattern, start_idx)
             if match:
                 matches.append(match)
-        
         return matches
     
     def _filter_events_by_time(self, events: List[Dict], start_time: Optional[float], 
@@ -66,7 +125,7 @@ class PatternMatcher:
         return filtered
     
     def _try_match_at_position(self, events: List[Dict], pattern: EventPattern, 
-                              start_idx: int) -> Optional[Dict]:
+                              start_idx: int) -> Optional[PatternMatch]:
         """Try to match pattern starting at given position."""
         if start_idx >= len(events):
             return None
@@ -88,14 +147,14 @@ class PatternMatcher:
             neuron_mapping.update(updated_mapping)
             current_idx = event_idx + 1
         
-        return {
-            'start_index': start_idx,
-            'end_index': current_idx - 1,
-            'start_time': matched_events[0]['time'],
-            'end_time': matched_events[-1]['time'],
-            'matched_events': matched_events,
-            'neuron_mapping': neuron_mapping
-        }
+        return PatternMatch(
+            start_index=start_idx,
+            end_index=current_idx - 1,
+            start_time=matched_events[0]['time'],
+            end_time=matched_events[-1]['time'],
+            matched_events=matched_events,
+            neuron_mapping=neuron_mapping
+        )
     
     def _find_next_matching_event(self, events: List[Dict], start_idx: int, 
                                  pattern_step: Dict, neuron_mapping: Dict) -> Optional[Tuple]:
@@ -274,7 +333,7 @@ def create_pattern() -> PatternQueryBuilder:
 
 def apply_pattern(pattern: EventPattern, result, 
                  start_time: Optional[float] = None, 
-                 end_time: Optional[float] = None) -> List[Dict]:
+                 end_time: Optional[float] = None) -> List[PatternMatch]:
     """Apply a pattern to a simulation result.
     
     Args:
@@ -284,14 +343,14 @@ def apply_pattern(pattern: EventPattern, result,
         end_time: Optional end time for search window
         
     Returns:
-        List of match dictionaries from PatternMatcher.find_matches()
+        List of PatternMatch objects from PatternMatcher.find_matches()
     """
     matcher = PatternMatcher()
     return matcher.find_matches(result.events, pattern, start_time, end_time)
 
 def apply_pattern_to_multiple(pattern: EventPattern, results: List, 
                              start_time: Optional[float] = None, 
-                             end_time: Optional[float] = None) -> Dict[int, List[Dict]]:
+                             end_time: Optional[float] = None) -> Dict[int, List[PatternMatch]]:
     """Apply a pattern to multiple simulation results.
     
     Args:
@@ -301,7 +360,7 @@ def apply_pattern_to_multiple(pattern: EventPattern, results: List,
         end_time: Optional end time for search window
         
     Returns:
-        Dictionary mapping result index to list of matches
+        Dictionary mapping result index to list of PatternMatch objects
     """
     all_matches = {}
     for i, result in enumerate(results):
@@ -342,9 +401,9 @@ def analyze_pattern_across_results(pattern: EventPattern, results: List) -> Dict
         intervals = []
         
         for j, match in enumerate(matches):
-            durations.append(match['end_time'] - match['start_time'])
+            durations.append(match.duration)
             if j > 0:
-                intervals.append(match['start_time'] - matches[j-1]['end_time'])
+                intervals.append(match.start_time - matches[j-1].end_time)
         
         aggregated_durations.extend(durations)
         aggregated_intervals.extend(intervals)

@@ -85,11 +85,11 @@ class TestStandalonePatterns:
         # Should find some matches in a reasonable simulation
         assert len(matches) >= 0
         
-        # Each match should have required fields
+        # Each match should have required attributes
         for match in matches:
-            assert 'start_time' in match
-            assert 'end_time' in match
-            assert 'matched_events' in match
+            assert hasattr(match, 'start_time')
+            assert hasattr(match, 'end_time')
+            assert hasattr(match, 'matched_events')
     
     def test_apply_pattern_with_time_window(self):
         """Test applying pattern with time constraints."""
@@ -102,8 +102,8 @@ class TestStandalonePatterns:
         
         # All matches should be within time window
         for match in matches:
-            assert match['start_time'] >= 5.0
-            assert match['end_time'] <= 15.0
+            assert match.start_time >= 5.0
+            assert match.end_time <= 15.0
     
     def test_apply_pattern_to_multiple_results(self):
         """Test applying pattern to multiple results."""
@@ -133,8 +133,8 @@ class TestStandalonePatterns:
         # Check time constraints for all results
         for result_idx, matches in all_matches.items():
             for match in matches:
-                assert match['start_time'] >= 10.0
-                assert match['end_time'] <= 20.0
+                assert match.start_time >= 10.0
+                assert match.end_time <= 20.0
     
     def test_analyze_pattern_across_results_basic(self):
         """Test basic pattern analysis across multiple results."""
@@ -251,8 +251,8 @@ class TestStandalonePatternEdgeCases:
         
         # Compare match details
         for m1, m2, m3 in zip(matches1, matches2, matches3):
-            assert m1['start_time'] == m2['start_time'] == m3['start_time']
-            assert m1['end_time'] == m2['end_time'] == m3['end_time']
+            assert m1.start_time == m2.start_time == m3.start_time
+            assert m1.end_time == m2.end_time == m3.end_time
 
 class TestStandalonePatternIntegration:
     """Integration tests for standalone patterns with real simulation scenarios."""
