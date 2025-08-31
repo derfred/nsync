@@ -213,13 +213,14 @@ class NetworkSimulation:
             ]
         
         # Define SimulationResult structure
+        # Note: spike_maps, reset_maps, total_reset_maps are now pointers to Bitmap pointers
         class CSimulationResult(ctypes.Structure):
             _fields_ = [
                 ("times", ctypes.POINTER(ctypes.c_double)),
                 ("phases_data", ctypes.POINTER(ctypes.c_double)),
-                ("spike_maps", ctypes.POINTER(ctypes.c_int)),
-                ("reset_maps", ctypes.POINTER(ctypes.c_int)),
-                ("total_reset_maps", ctypes.POINTER(ctypes.c_int)),
+                ("spike_maps", ctypes.c_void_p),  # Bitmap** - opaque pointer
+                ("reset_maps", ctypes.c_void_p),  # Bitmap** - opaque pointer
+                ("total_reset_maps", ctypes.c_void_p),  # Bitmap** - opaque pointer
                 ("num_timesteps", ctypes.c_int),
                 ("N", ctypes.c_int),
                 ("capacity", ctypes.c_int),
@@ -250,6 +251,28 @@ class NetworkSimulation:
         
         self.lib.free_simulation_result.argtypes = [ctypes.POINTER(CSimulationResult)]
         self.lib.free_simulation_result.restype = None
+        
+        # Define bitmap access functions
+        self.lib.get_spike_neurons.argtypes = [
+            ctypes.POINTER(CSimulationResult),
+            ctypes.c_int,  # timestep
+            ctypes.POINTER(ctypes.c_int)  # count
+        ]
+        self.lib.get_spike_neurons.restype = ctypes.POINTER(ctypes.c_int)
+        
+        self.lib.get_reset_neurons.argtypes = [
+            ctypes.POINTER(CSimulationResult),
+            ctypes.c_int,  # timestep
+            ctypes.POINTER(ctypes.c_int)  # count
+        ]
+        self.lib.get_reset_neurons.restype = ctypes.POINTER(ctypes.c_int)
+        
+        self.lib.get_total_reset_neurons.argtypes = [
+            ctypes.POINTER(CSimulationResult),
+            ctypes.c_int,  # timestep
+            ctypes.POINTER(ctypes.c_int)  # count
+        ]
+        self.lib.get_total_reset_neurons.restype = ctypes.POINTER(ctypes.c_int)
     
     def run_simulation(
         self,
@@ -321,46 +344,54 @@ class NetworkSimulation:
             ])
             phases = phases_flat.reshape(result.num_timesteps, result.N)
             
-            # Extract events from bitmap data
+            # Extract events from bitmap data using the new access functions
             events = []
             for i in range(result.num_timesteps):
-                spike_map = result.spike_maps[i]
-                reset_map = result.reset_maps[i]
-                total_reset_map = result.total_reset_maps[i]
-                
                 # Extract spike events
-                if spike_map > 0:
-                    spike_neurons = [
-                        neuron_id for neuron_id in range(N)
-                        if spike_map & (1 << neuron_id)
-                    ]
-                    if spike_neurons:
-                        events.append({
-                            'time': times[i],
-                            'type': 'spike',
-                            'neurons': spike_neurons
-                        })
+                count = ctypes.c_int()
+                spike_neurons_ptr = self.lib.get_spike_neurons(result_ptr, i, ctypes.byref(count))
+                if spike_neurons_ptr and count.value > 0:
+                    spike_neurons = [spike_neurons_ptr[j] for j in range(count.value)]
+                    events.append({
+                        'time': times[i],
+                        'type': 'spike',
+                        'neurons': spike_neurons
+                    })
+                    # Free the allocated array
+                    if spike_neurons_ptr:
+                        ctypes.CDLL(None).free(spike_neurons_ptr)
                 
                 # Extract reset events (natural resets)
-                if reset_map > 0:
-                    reset_neurons = [
-                        neuron_id for neuron_id in range(N)
-                        if reset_map & (1 << neuron_id)
-                    ]
-                    if reset_neurons:
-                        events.append({
-                            'time': times[i],
-                            'type': 'reset',
-                            'neurons': reset_neurons
-                        })
+                reset_neurons_ptr = self.lib.get_reset_neurons(result_ptr, i, ctypes.byref(count))
+                if reset_neurons_ptr and count.value > 0:
+                    reset_neurons = [reset_neurons_ptr[j] for j in range(count.value)]
+                    events.append({
+                        'time': times[i],
+                        'type': 'reset',
+                        'neurons': reset_neurons
+                    })
+                    # Free the allocated array
+                    if reset_neurons_ptr:
+                        ctypes.CDLL(None).free(reset_neurons_ptr)
                 
-                # Extract spike-induced reset events
-                spike_induced_reset_map = total_reset_map & ~reset_map
-                if spike_induced_reset_map > 0:
-                    spike_induced_reset_neurons = [
-                        neuron_id for neuron_id in range(N)
-                        if spike_induced_reset_map & (1 << neuron_id)
-                    ]
+                # Extract total reset events to calculate spike-induced resets
+                total_reset_neurons_ptr = self.lib.get_total_reset_neurons(result_ptr, i, ctypes.byref(count))
+                if total_reset_neurons_ptr and count.value > 0:
+                    total_reset_neurons = set([total_reset_neurons_ptr[j] for j in range(count.value)])
+                    # Free the allocated array
+                    if total_reset_neurons_ptr:
+                        ctypes.CDLL(None).free(total_reset_neurons_ptr)
+                    
+                    # Calculate spike-induced resets (total - natural)
+                    reset_count = ctypes.c_int()
+                    reset_neurons_ptr2 = self.lib.get_reset_neurons(result_ptr, i, ctypes.byref(reset_count))
+                    if reset_neurons_ptr2:
+                        natural_reset_neurons = set([reset_neurons_ptr2[j] for j in range(reset_count.value)])
+                        ctypes.CDLL(None).free(reset_neurons_ptr2)
+                    else:
+                        natural_reset_neurons = set()
+                    
+                    spike_induced_reset_neurons = list(total_reset_neurons - natural_reset_neurons)
                     if spike_induced_reset_neurons:
                         events.append({
                             'time': times[i],

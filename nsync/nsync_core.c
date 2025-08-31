@@ -19,39 +19,41 @@ double gf(struct Network *network, int i, double eps) {
   }
 }
 
-void build_bitmap(char * buffer, int bitmap, int N, char klass) {
-  buffer[0] = klass;
-  buffer[1] = '\t';
-  for (int i = 0; i < N; i++) {
-    buffer[i + 2] = (bitmap & (1 << i)) > 0 ? '1' : '0';
-  }
-  buffer[N + 2] = '\0';
+void build_bitmap(char * buffer, const Bitmap *bitmap, char klass) {
+  bitmap_to_string(buffer, bitmap, klass);
 }
 
 // Unified simulation core that accepts callbacks for output handling
 void run_network_core(struct Network *network, 
                      void (*on_timestep)(double time, double *phases, 
-                                       int spike_map, int reset_map, int total_reset_map,
+                                       const Bitmap *spike_map, const Bitmap *reset_map, 
+                                       const Bitmap *total_reset_map,
                                        void *context),
                      void *context) {
   const int suffix_size = network->N + 2 + 1;
   char * suffix = (char *) malloc(sizeof(char) * suffix_size);
 
+  // Create bitmaps for tracking neuron states
+  Bitmap *reset_map = bitmap_create(network->N);
+  Bitmap *spike_map = bitmap_create(network->N);
+  Bitmap *total_reset_map = bitmap_create(network->N);
+
   while (network->now < network->Tmax) {
     double next_reset = network->Tmax;
-    int reset_map     = 0;
+    bitmap_clear(reset_map);
 
     double next_spike = network->Tmax;
-    int spike_map     = 0;
+    bitmap_clear(spike_map);
 
     // 1. find time to next event, and determine type of event
     for (int i = 0; i < network->N; i++) {
       double _next_reset = network->now + time_to_reset(network, i);
       if (_next_reset < next_reset) {
         next_reset = _next_reset;
-        reset_map = 1 << i;
+        bitmap_clear(reset_map);
+        bitmap_set(reset_map, i);
       } else if (_next_reset == next_reset) {
-        reset_map |= 1 << i;
+        bitmap_set(reset_map, i);
       }
 
       if (network->resets[i] > 0) {
@@ -59,9 +61,10 @@ void run_network_core(struct Network *network,
         if (_next_spike > network->now) {
           if (_next_spike < next_spike) {
             next_spike = _next_spike;
-            spike_map = 1 << i;
+            bitmap_clear(spike_map);
+            bitmap_set(spike_map, i);
           } else if (_next_spike == next_spike) {
-            spike_map |= 1 << i;
+            bitmap_set(spike_map, i);
           }
         }
       }
@@ -74,25 +77,25 @@ void run_network_core(struct Network *network,
       network->phases[i] += dt / network->periods[i];
     }
 
-    int total_reset_map = 0;
+    bitmap_clear(total_reset_map);
     if (next_reset < next_spike) {
       // 3.a. if reset -> issue spikes
       for (int i = 0; i < network->N; i++) {
-        if (reset_map & (1 << i)) {
+        if (bitmap_test(reset_map, i)) {
           network->resets[i] = _now;
           network->phases[i] = 0;
-          total_reset_map |= 1 << i;
+          bitmap_set(total_reset_map, i);
         }
       }
-      // No spikes occurred, so spike_map should be 0
-      spike_map = 0;
+      // No spikes occurred, so spike_map should be cleared
+      bitmap_clear(spike_map);
     } else {
       // 3.b. if spike -> jump phases, reset if necessary
       for (int i = 0; i < network->N; i++) {
         double eps = 0;
         for (int j = 0; j < network->N; j++) {
           if (i != j) {
-            if (spike_map & (1 << j)) {
+            if (bitmap_test(spike_map, j)) {
               eps += network->strength;
             }
           }
@@ -101,13 +104,13 @@ void run_network_core(struct Network *network,
           network->phases[i] = gf(network, i, eps);
         }
         if (network->phases[i] >= 1) {
-          total_reset_map |= 1 << i;
+          bitmap_set(total_reset_map, i);
           network->resets[i] = _now;
           network->phases[i] = 0;
         }
       }
-      // No natural resets occurred, so reset_map should be 0
-      reset_map = 0;
+      // No natural resets occurred, so reset_map should be cleared
+      bitmap_clear(reset_map);
     }
     network->now = _now;
     
@@ -117,5 +120,9 @@ void run_network_core(struct Network *network,
     }
   }
   
+  // Cleanup
+  bitmap_free(reset_map);
+  bitmap_free(spike_map);
+  bitmap_free(total_reset_map);
   free(suffix);
 } 

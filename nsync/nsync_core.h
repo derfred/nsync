@@ -1,11 +1,12 @@
 #pragma once
 
 #include "nsync.h"
+#include "bitmap.h"
 
 // Core simulation functions (shared between different interfaces)
 double time_to_reset(struct Network *network, int i);
 double gf(struct Network *network, int i, double eps);
-void build_bitmap(char * buffer, int bitmap, int N, char klass);
+void build_bitmap(char * buffer, const Bitmap *bitmap, char klass);
 
 // Unified simulation core with callback for output handling
 // on_timestep: callback function called for each simulation timestep
@@ -17,6 +18,7 @@ void build_bitmap(char * buffer, int bitmap, int N, char klass);
 //   - context: user-provided context data
 void run_network_core(struct Network *network, 
                      void (*on_timestep)(double time, double *phases, 
-                                       int spike_map, int reset_map, int total_reset_map,
+                                       const Bitmap *spike_map, const Bitmap *reset_map, 
+                                       const Bitmap *total_reset_map,
                                        void *context),
                      void *context); 

@@ -5,6 +5,7 @@
 
 #include "nsync.h"
 #include "nsync_core.h"
+#include "bitmap.h"
 
 void print_network_vector_with_prefix_and_suffix(struct Network *network, double *vector, char *prefix, char *suffix) {
   printf("%s\t", prefix);
@@ -21,9 +22,9 @@ void print_phases_with_prefix_and_suffix(struct Network *network, char *prefix, 
   print_network_vector_with_prefix_and_suffix(network, network->phases, prefix, suffix);
 }
 
-void print_bitmap(int bitmap, int N, char prefix) {
-  char buffer[N + 2 + 1];
-  build_bitmap(buffer, bitmap, N, prefix);
+void print_bitmap(const Bitmap *bitmap, char prefix) {
+  char buffer[bitmap->n_neurons + 2 + 1];
+  build_bitmap(buffer, bitmap, prefix);
   printf("%s\n", buffer);
 }
 
@@ -34,8 +35,24 @@ void print_phases(struct Network *network, char * suffix) {
 }
 
 // Callback function for printing timestep data
-void print_timestep_callback(double time, double *phases, char *event, void *context) {
+void print_timestep_callback(double time, double *phases, 
+                            const Bitmap *spike_map, const Bitmap *reset_map, 
+                            const Bitmap *total_reset_map,
+                            void *context) {
   struct Network *network = (struct Network *)context;
+  
+  // Build event string from bitmaps
+  char event[256] = "";
+  if (!bitmap_is_empty(spike_map)) {
+    strcat(event, " [SPIKE]");
+  }
+  if (!bitmap_is_empty(reset_map)) {
+    strcat(event, " [RESET]");
+  }
+  if (!bitmap_is_empty(total_reset_map) && bitmap_is_empty(reset_map)) {
+    strcat(event, " [SPIKE-IND-RESET]");
+  }
+  
   print_phases(network, event);
 }
 
