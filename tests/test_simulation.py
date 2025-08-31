@@ -44,31 +44,31 @@ class TestNetworkSimulation:
         # Test with valid N
         result = sim.run_simulation(N=3, Tmax=10.0, seed=42)
         assert result.parameters['N'] == 3
-        assert len(result.phases[0]) == 3
+        assert len(result.voltages[0]) == 3
         
         # Test with invalid N (should work but might be impractical)
         result = sim.run_simulation(N=1, Tmax=10.0, seed=42)
         assert result.parameters['N'] == 1
     
-    def test_run_simulation_parameter_validation_initial_phases(self):
-        """Test parameter validation for initial_phases."""
+    def test_run_simulation_parameter_validation_initial_voltages(self):
+        """Test parameter validation for initial_voltages."""
         sim = NetworkSimulation(auto_compile=True)
         
-        # Test with valid initial phases
-        phases = [0.1, 0.5, 0.9]
-        result = sim.run_simulation(N=3, initial_phases=phases, Tmax=10.0, seed=42)
-        assert result.parameters['initial_phases'] == phases
+        # Test with valid initial voltages
+        voltages = [0.1, 0.5, 0.9]
+        result = sim.run_simulation(N=3, initial_voltages=voltages, Tmax=10.0, seed=42)
+        assert result.parameters['initial_voltages'] == voltages
         
         # Test with wrong length
-        with pytest.raises(ValueError, match="initial_phases must have length N=3, got 2"):
-            sim.run_simulation(N=3, initial_phases=[0.1, 0.5], Tmax=10.0)
+        with pytest.raises(ValueError, match="initial_voltages must have length N=3, got 2"):
+            sim.run_simulation(N=3, initial_voltages=[0.1, 0.5], Tmax=10.0)
         
-        # Test with invalid phase values (outside 0-1)
-        with pytest.raises(ValueError, match="All initial phases must be between 0 and 1"):
-            sim.run_simulation(N=3, initial_phases=[0.1, 1.5, 0.9], Tmax=10.0)
+        # Test with invalid voltage values (outside 0-1)
+        with pytest.raises(ValueError, match="All initial voltages must be between 0 and 1"):
+            sim.run_simulation(N=3, initial_voltages=[0.1, 1.5, 0.9], Tmax=10.0)
         
-        with pytest.raises(ValueError, match="All initial phases must be between 0 and 1"):
-            sim.run_simulation(N=3, initial_phases=[-0.1, 0.5, 0.9], Tmax=10.0)
+        with pytest.raises(ValueError, match="All initial voltages must be between 0 and 1"):
+            sim.run_simulation(N=3, initial_voltages=[-0.1, 0.5, 0.9], Tmax=10.0)
     
     def test_run_simulation_parameter_types(self):
         """Test that simulation accepts correct parameter types."""
@@ -83,7 +83,7 @@ class TestNetworkSimulation:
             I=1.0,
             Ijitter=0.05,
             seed=123,
-            initial_phases=None
+            initial_voltages=None
         )
         
         # Verify parameters are stored correctly
@@ -95,7 +95,7 @@ class TestNetworkSimulation:
         assert params['I'] == 1.0
         assert params['Ijitter'] == 0.05
         assert params['seed'] == 123
-        assert params['initial_phases'] is None
+        assert params['initial_voltages'] is None
     
     def test_run_simulation_reproducibility(self):
         """Test that simulations with same seed produce identical results."""
@@ -107,7 +107,7 @@ class TestNetworkSimulation:
         
         # Results should be identical
         np.testing.assert_array_equal(result1.times, result2.times)
-        np.testing.assert_array_equal(result1.phases, result2.phases)
+        np.testing.assert_array_equal(result1.voltages, result2.voltages)
         assert len(result1.events) == len(result2.events)
         
         # Events should be identical
@@ -125,7 +125,7 @@ class TestNetworkSimulation:
         result2 = sim.run_simulation(N=3, Tmax=20.0, seed=43)
         
         # Results should have the same number of neurons but may have different timesteps
-        assert result1.phases.shape[1] == result2.phases.shape[1] == 3  # Same number of neurons
+        assert result1.voltages.shape[1] == result2.voltages.shape[1] == 3  # Same number of neurons
         assert len(result1.events) >= 0
         assert len(result2.events) >= 0
         
@@ -158,7 +158,7 @@ class TestSimulationResult:
         """Set up test data for each test."""
         # Create sample simulation result data
         self.times = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
-        self.phases = np.array([
+        self.voltages = np.array([
             [0.1, 0.5, 0.9],
             [0.3, 0.7, 0.1],
             [0.5, 0.9, 0.3],
@@ -180,17 +180,17 @@ class TestSimulationResult:
             'I': 1.0,
             'Ijitter': 0.0,
             'seed': 42,
-            'initial_phases': [0.1, 0.5, 0.9]
+            'initial_voltages': [0.1, 0.5, 0.9]
         }
         
-        self.result = SimulationResult(self.times, self.phases, self.events, self.parameters)
+        self.result = SimulationResult(self.times, self.voltages, self.events, self.parameters)
     
     def test_initialization(self):
         """Test SimulationResult initialization."""
-        result = SimulationResult(self.times, self.phases, self.events, self.parameters)
+        result = SimulationResult(self.times, self.voltages, self.events, self.parameters)
         
         np.testing.assert_array_equal(result.times, self.times)
-        np.testing.assert_array_equal(result.phases, self.phases)
+        np.testing.assert_array_equal(result.voltages, self.voltages)
         assert result.events == self.events
         assert result.parameters == self.parameters
         assert result._pattern_matcher is not None
@@ -284,7 +284,7 @@ class TestIntegration:
         # Basic validation of result structure
         assert isinstance(result, SimulationResult)
         assert result.times.shape[0] > 0
-        assert result.phases.shape[1] == 4  # 4 neurons
+        assert result.voltages.shape[1] == 4  # 4 neurons
         assert len(result.events) >= 0
         
         # Test pattern matching on real data
@@ -309,7 +309,7 @@ class TestIntegration:
             result = sim.run_simulation(N=N, Tmax=15.0, seed=42)
             
             assert result.parameters['N'] == N
-            assert result.phases.shape[1] == N
+            assert result.voltages.shape[1] == N
             
             # Verify spikes dictionary has correct number of neurons
             spikes = result.get_spikes()
@@ -339,7 +339,7 @@ class TestIntegration:
         result_strong = sim.run_simulation(N=3, Tmax=20.0, strength=0.1, seed=42)
         
         # Results should have same number of neurons but may have different dynamics
-        assert result_weak.phases.shape[1] == result_strong.phases.shape[1] == 3  # Same number of neurons
+        assert result_weak.voltages.shape[1] == result_strong.voltages.shape[1] == 3  # Same number of neurons
         assert result_weak.parameters['strength'] != result_strong.parameters['strength']
         
         # Parameters should be correctly stored
@@ -347,7 +347,7 @@ class TestIntegration:
         assert result_strong.parameters['strength'] == 0.1
     
     def test_event_consistency(self):
-        """Test that events are consistent with phase dynamics."""
+        """Test that events are consistent with voltage dynamics."""
         sim = NetworkSimulation(auto_compile=True)
         result = sim.run_simulation(N=3, Tmax=20.0, seed=42)
         

@@ -64,14 +64,14 @@ void initialize(struct Network *network, int argc, char *argv[]) {
   network->strength = params.strength;
   network->Ijitter  = params.Ijitter;
   network->currents = (double *) malloc(sizeof(double) * params.N);
+  network->voltages = (double *) malloc(sizeof(double) * params.N);
   network->periods  = (double *) malloc(sizeof(double) * params.N);
-  network->phases   = (double *) malloc(sizeof(double) * params.N);
   network->resets   = (double *) malloc(sizeof(double) * params.N);
 
   for (int i = 0; i < params.N; i++) {
     network->currents[i] = params.I + i * network->Ijitter;
     network->periods[i]  = log(network->currents[i]/(network->currents[i] - 1));
     network->resets[i]   = -1;
-    network->phases[i]   = (double) rand() / RAND_MAX;
+    network->voltages[i] = (double) rand() / RAND_MAX;
   }
 }

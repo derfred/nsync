@@ -24,18 +24,18 @@ from .patterns import PatternMatcher, PatternQueryBuilder, EventPattern, Pattern
 class SimulationResult:
     """Represents the results of a network simulation with pattern query capabilities."""
     
-    def __init__(self, times: np.ndarray, phases: np.ndarray, events: List[Dict], 
+    def __init__(self, times: np.ndarray, voltages: np.ndarray, events: List[Dict], 
                  parameters: Dict):
         """Initialize simulation result.
         
         Args:
             times: Array of time points
-            phases: 2D array of phases (timesteps x neurons)
+            voltages: 2D array of voltages (timesteps x neurons)
             events: List of event dictionaries
             parameters: Simulation parameters
         """
         self.times = times
-        self.phases = phases
+        self.voltages = voltages
         self.events = events
         self.parameters = parameters
         self._pattern_matcher = PatternMatcher()
@@ -208,7 +208,7 @@ class NetworkSimulation:
                 ("Ijitter", ctypes.c_double),
                 ("currents", ctypes.POINTER(ctypes.c_double)),
                 ("periods", ctypes.POINTER(ctypes.c_double)),
-                ("phases", ctypes.POINTER(ctypes.c_double)),
+                ("voltages", ctypes.POINTER(ctypes.c_double)),
                 ("resets", ctypes.POINTER(ctypes.c_double)),
             ]
         
@@ -217,7 +217,7 @@ class NetworkSimulation:
         class CSimulationResult(ctypes.Structure):
             _fields_ = [
                 ("times", ctypes.POINTER(ctypes.c_double)),
-                ("phases_data", ctypes.POINTER(ctypes.c_double)),
+                ("voltages_data", ctypes.POINTER(ctypes.c_double)),
                 ("spike_maps", ctypes.c_void_p),  # Bitmap** - opaque pointer
                 ("reset_maps", ctypes.c_void_p),  # Bitmap** - opaque pointer
                 ("total_reset_maps", ctypes.c_void_p),  # Bitmap** - opaque pointer
@@ -239,7 +239,7 @@ class NetworkSimulation:
             ctypes.c_double, # I
             ctypes.c_double, # Ijitter
             ctypes.c_uint,   # seed
-            ctypes.POINTER(ctypes.c_double)  # initial_phases (NULL for random)
+            ctypes.POINTER(ctypes.c_double)  # initial_voltages (NULL for random)
         ]
         self.lib.init_network.restype = None
         
@@ -283,7 +283,7 @@ class NetworkSimulation:
         I: float = 1.04,
         Ijitter: float = 0.0,
         seed: Optional[int] = None,
-        initial_phases: Optional[List[float]] = None
+        initial_voltages: Optional[List[float]] = None
     ) -> SimulationResult:
         """Run a network simulation with the given parameters.
         
@@ -295,8 +295,8 @@ class NetworkSimulation:
             I: Base current
             Ijitter: Current jitter between neurons
             seed: Random seed (uses current time if None)
-            initial_phases: List of initial phases for each neuron (0-1), 
-                          if None uses random phases
+            initial_voltages: List of initial voltages for each neuron (0-1), 
+                          if None uses random voltages
         
         Returns:
             SimulationResult object with pattern query capabilities
@@ -307,27 +307,27 @@ class NetworkSimulation:
         if seed is None:
             seed = int(time.time() * 1000000) % (2**32)
         
-        # Validate initial_phases if provided
-        if initial_phases is not None:
-            if len(initial_phases) != N:
-                raise ValueError(f"initial_phases must have length N={N}, got {len(initial_phases)}")
-            if not all(0 <= phase <= 1 for phase in initial_phases):
-                raise ValueError("All initial phases must be between 0 and 1")
+        # Validate initial_voltages if provided
+        if initial_voltages is not None:
+            if len(initial_voltages) != N:
+                raise ValueError(f"initial_voltages must have length N={N}, got {len(initial_voltages)}")
+            if not all(0 <= voltage <= 1 for voltage in initial_voltages):
+                raise ValueError("All initial voltages must be between 0 and 1")
         
         # Create network structure
         network = self.Network()
         
         # Initialize network
-        if initial_phases is None:
+        if initial_voltages is None:
             # Use random initialization
             self.lib.init_network(
                 ctypes.byref(network), N, Tmax, delay, strength, I, Ijitter, seed, None
             )
         else:
-            # Use specified initial phases
-            phases_array = (ctypes.c_double * N)(*initial_phases)
+            # Use specified initial voltages
+            voltages_array = (ctypes.c_double * N)(*initial_voltages)
             self.lib.init_network(
-                ctypes.byref(network), N, Tmax, delay, strength, I, Ijitter, seed, phases_array
+                ctypes.byref(network), N, Tmax, delay, strength, I, Ijitter, seed, voltages_array
             )
         
         try:
@@ -338,11 +338,11 @@ class NetworkSimulation:
             # Extract times
             times = np.array([result.times[i] for i in range(result.num_timesteps)])
             
-            # Extract phases (reshape to timesteps x neurons)
-            phases_flat = np.array([
-                result.phases_data[i] for i in range(result.num_timesteps * result.N)
+            # Extract voltages (reshape to timesteps x neurons)
+            voltages_flat = np.array([
+                result.voltages_data[i] for i in range(result.num_timesteps * result.N)
             ])
-            phases = phases_flat.reshape(result.num_timesteps, result.N)
+            voltages = voltages_flat.reshape(result.num_timesteps, result.N)
             
             # Extract events from bitmap data using the new access functions
             events = []
@@ -411,10 +411,10 @@ class NetworkSimulation:
                 'I': I,
                 'Ijitter': Ijitter,
                 'seed': seed,
-                'initial_phases': initial_phases
+                'initial_voltages': initial_voltages
             }
             
-            return SimulationResult(times, phases, events, parameters)
+            return SimulationResult(times, voltages, events, parameters)
         
         finally:
             # Clean up network memory

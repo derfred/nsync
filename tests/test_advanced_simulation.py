@@ -30,7 +30,7 @@ class TestAdvancedSimulation:
         result = sim.run_simulation(N=N, Tmax=15.0, seed=42)
         
         assert result.parameters['N'] == N
-        assert result.phases.shape[1] == N
+        assert result.voltages.shape[1] == N
         
         # Should have spike data for all neurons
         spikes = result.get_spikes()
@@ -119,27 +119,27 @@ class TestAdvancedSimulation:
         assert len(result_no_jitter.events) >= 0
         assert len(result_with_jitter.events) >= 0
     
-    def test_initial_phases_effects(self):
-        """Test different initial phase configurations."""
+    def test_initial_voltages_effects(self):
+        """Test different initial voltage configurations."""
         sim = NetworkSimulation(auto_compile=True)
         
         N = 4
         
-        # Test synchronized start (all phases = 0)
-        sync_phases = [0.0] * N
+        # Test synchronized start (all voltages = 0)
+        sync_voltages = [0.0] * N
         result_sync = sim.run_simulation(
-            N=N, Tmax=15.0, initial_phases=sync_phases, seed=42
+            N=N, Tmax=15.0, initial_voltages=sync_voltages, seed=42
         )
         
         # Test distributed start
-        distributed_phases = [i / N for i in range(N)]
+        distributed_voltages = [i / N for i in range(N)]
         result_distributed = sim.run_simulation(
-            N=N, Tmax=15.0, initial_phases=distributed_phases, seed=42
+            N=N, Tmax=15.0, initial_voltages=distributed_voltages, seed=42
         )
         
         # Test random start (None)
         result_random = sim.run_simulation(
-            N=N, Tmax=15.0, initial_phases=None, seed=42
+            N=N, Tmax=15.0, initial_voltages=None, seed=42
         )
         
         # All should complete successfully
@@ -147,10 +147,10 @@ class TestAdvancedSimulation:
         assert len(result_distributed.events) >= 0
         assert len(result_random.events) >= 0
         
-        # Initial phases should be stored correctly
-        assert result_sync.parameters['initial_phases'] == sync_phases
-        assert result_distributed.parameters['initial_phases'] == distributed_phases
-        assert result_random.parameters['initial_phases'] is None
+        # Initial voltages should be stored correctly
+        assert result_sync.parameters['initial_voltages'] == sync_voltages
+        assert result_distributed.parameters['initial_voltages'] == distributed_voltages
+        assert result_random.parameters['initial_voltages'] is None
 
 class TestPerformanceAndMemory:
     """Test performance characteristics and memory management."""
@@ -170,7 +170,7 @@ class TestPerformanceAndMemory:
         
         # Should produce meaningful output
         assert len(result.events) > 0
-        assert result.phases.shape[0] > 1
+        assert result.voltages.shape[0] > 1
     
     def test_memory_management(self):
         """Test that repeated simulations don't leak memory."""
@@ -206,14 +206,14 @@ class TestPerformanceAndMemory:
 class TestNumericalProperties:
     """Test numerical properties and consistency."""
     
-    def test_phase_evolution_consistency(self):
-        """Test that phase evolution is numerically consistent."""
+    def test_voltage_evolution_consistency(self):
+        """Test that voltage evolution is numerically consistent."""
         sim = NetworkSimulation(auto_compile=True)
         result = sim.run_simulation(N=3, Tmax=20.0, seed=42)
         
-        # Phases should be in [0, 1] range at all times
-        assert np.all(result.phases >= 0.0)
-        assert np.all(result.phases <= 1.0)
+        # Voltages should be in [0, 1] range at all times
+        assert np.all(result.voltages >= 0.0)
+        assert np.all(result.voltages <= 1.0)
         
         # Times should be monotonically increasing
         assert np.all(np.diff(result.times) >= 0)
@@ -268,7 +268,7 @@ class TestEdgeCases:
             
             # If successful, check basic properties
             assert result.parameters['N'] == 1
-            assert result.phases.shape[1] == 1
+            assert result.voltages.shape[1] == 1
             
             # Single neuron should still produce events
             assert len(result.events) >= 0

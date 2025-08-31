@@ -57,8 +57,8 @@ if __name__ == "__main__":
     # Create simulation instance
     sim = NetworkSimulation()
     
-    # Run simulation with custom parameters and random initial phases
-    print("\n1. Simulation with random initial phases:")
+    # Run simulation with custom parameters and random initial voltages
+    print("\n1. Simulation with random initial voltages:")
     result1 = sim.run_simulation(
         N=3,
         Tmax=50.0,
@@ -69,47 +69,47 @@ if __name__ == "__main__":
     print(f"Simulation completed!")
     print(f"- {len(result1.times)} time steps")
     print(f"- {len(result1.events)} events")
-    print(f"- Phase data shape: {result1.phases.shape}")
-    print(f"- Initial phases: {result1.parameters['initial_phases']}")
-    print(f"- First few phases: {result1.phases[0]}")
+    print(f"- Voltage data shape: {result1.voltages.shape}")
+    print(f"- Initial voltages: {result1.parameters['initial_voltages']}")
+    print(f"- First few voltages: {result1.voltages[0]}")
     
-    # Run simulation with specified initial phases
-    print("\n2. Simulation with specified initial phases:")
-    custom_phases = [0.1, 0.5, 0.9]  # Different starting phases for each neuron
+    # Run simulation with specified initial voltages
+    print("\n2. Simulation with specified initial voltages:")
+    custom_voltages = [0.1, 0.5, 0.9]  # Different starting voltages for each neuron
     result2 = sim.run_simulation(
         N=3,
         Tmax=50.0,
         strength=0.05,
         seed=42,
-        initial_phases=custom_phases
+        initial_voltages=custom_voltages
     )
     
     print(f"Simulation completed!")
     print(f"- {len(result2.times)} time steps")
     print(f"- {len(result2.events)} events")
-    print(f"- Phase data shape: {result2.phases.shape}")
-    print(f"- Initial phases: {result2.parameters['initial_phases']}")
-    print(f"- First few phases: {result2.phases[0]}")
+    print(f"- Voltage data shape: {result2.voltages.shape}")
+    print(f"- Initial voltages: {result2.parameters['initial_voltages']}")
+    print(f"- First few voltages: {result2.voltages[0]}")
     
     # Get spike times for both simulations
     spikes1 = result1.get_spikes()
     spikes2 = result2.get_spikes()
     
     print(f"\nSpike times comparison:")
-    print("Random initial phases:")
+    print("Random initial voltages:")
     for neuron_id, spike_times in spikes1.items():
         print(f"  Neuron {neuron_id}: {len(spike_times)} spikes")
         if spike_times:
             print(f"    First spike: {spike_times[0]:.3f}")
     
-    print("Custom initial phases:")
+    print("Custom initial voltages:")
     for neuron_id, spike_times in spikes2.items():
         print(f"  Neuron {neuron_id}: {len(spike_times)} spikes")
         if spike_times:
             print(f"    First spike: {spike_times[0]:.3f}")
     
     # Demonstrate new detailed event analysis
-    print(f"\nDetailed event analysis for custom phases simulation:")
+    print(f"\nDetailed event analysis for custom voltages simulation:")
     detailed_events = result2.get_detailed_events()
     print(f"- {len(detailed_events['spikes'])} spike events")
     print(f"- {len(detailed_events['natural_resets'])} natural reset events")

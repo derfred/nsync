@@ -17,8 +17,8 @@ struct Network {
   double strength;
   double Ijitter;
   double *currents;
+  double *voltages;
   double *periods;
-  double *phases;
   double *resets;
 };
 

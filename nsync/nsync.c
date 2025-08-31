@@ -18,24 +18,18 @@ void print_network_vector_with_prefix_and_suffix(struct Network *network, double
   printf("\n");
 }
 
-void print_phases_with_prefix_and_suffix(struct Network *network, char *prefix, char *suffix) {
-  print_network_vector_with_prefix_and_suffix(network, network->phases, prefix, suffix);
+void print_voltages_with_prefix_and_suffix(struct Network *network, char *prefix, char *suffix) {
+  print_network_vector_with_prefix_and_suffix(network, network->voltages, prefix, suffix);
 }
 
-void print_bitmap(const Bitmap *bitmap, char prefix) {
-  char buffer[bitmap->n_neurons + 2 + 1];
-  build_bitmap(buffer, bitmap, prefix);
-  printf("%s\n", buffer);
-}
-
-void print_phases(struct Network *network, char * suffix) {
+void print_voltages(struct Network *network, char * suffix) {
   char prefix[100];
   sprintf(prefix, "%.10f", network->now);
-  print_phases_with_prefix_and_suffix(network, prefix, suffix);
+  print_voltages_with_prefix_and_suffix(network, prefix, suffix);
 }
 
 // Callback function for printing timestep data
-void print_timestep_callback(double time, double *phases, 
+void print_timestep_callback(double time, double *voltages, 
                             const Bitmap *spike_map, const Bitmap *reset_map, 
                             const Bitmap *total_reset_map,
                             void *context) {
@@ -53,7 +47,7 @@ void print_timestep_callback(double time, double *phases,
     strcat(event, " [SPIKE-IND-RESET]");
   }
   
-  print_phases(network, event);
+  print_voltages(network, event);
 }
 
 void cpu_run_network(struct Network *network) {

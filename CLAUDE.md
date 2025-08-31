@@ -84,7 +84,7 @@ result = sim.run_simulation(
 - `I` - Base driving current
 - `Ijitter` - Current variation between neurons
 - `seed` - Random seed for reproducibility
-- `initial_phases` - Optional array of starting phases (0-1) for each neuron
+- `initial_voltages` - Optional array of starting voltages (0-1) for each neuron
 
 ### Testing
 

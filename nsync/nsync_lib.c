@@ -18,7 +18,7 @@ struct SimulationResult* init_simulation_result(int N, int initial_capacity) {
     result->capacity = initial_capacity;
     result->num_timesteps = 0;
     result->times = malloc(sizeof(double) * initial_capacity);
-    result->phases_data = malloc(sizeof(double) * initial_capacity * N);
+    result->voltages_data = malloc(sizeof(double) * initial_capacity * N);
     result->spike_maps = malloc(sizeof(Bitmap*) * initial_capacity);
     result->reset_maps = malloc(sizeof(Bitmap*) * initial_capacity);
     result->total_reset_maps = malloc(sizeof(Bitmap*) * initial_capacity);
@@ -37,7 +37,7 @@ void resize_simulation_result(struct SimulationResult *result) {
     if (result->num_timesteps >= result->capacity) {
         result->capacity *= 2;
         result->times = realloc(result->times, sizeof(double) * result->capacity);
-        result->phases_data = realloc(result->phases_data, sizeof(double) * result->capacity * result->N);
+        result->voltages_data = realloc(result->voltages_data, sizeof(double) * result->capacity * result->N);
         result->spike_maps = realloc(result->spike_maps, sizeof(Bitmap*) * result->capacity);
         result->reset_maps = realloc(result->reset_maps, sizeof(Bitmap*) * result->capacity);
         result->total_reset_maps = realloc(result->total_reset_maps, sizeof(Bitmap*) * result->capacity);
@@ -52,16 +52,16 @@ void resize_simulation_result(struct SimulationResult *result) {
 }
 
 // Add a timestep to results
-void add_timestep(struct SimulationResult *result, double time, double *phases, 
+void add_timestep(struct SimulationResult *result, double time, double *voltages, 
                  const Bitmap *spike_map, const Bitmap *reset_map, const Bitmap *total_reset_map) {
     resize_simulation_result(result);
     
     int idx = result->num_timesteps;
     result->times[idx] = time;
     
-    // Copy phases
+    // Copy voltages
     for (int i = 0; i < result->N; i++) {
-        result->phases_data[idx * result->N + i] = phases[i];
+        result->voltages_data[idx * result->N + i] = voltages[i];
     }
     
     // Store bitmap data (create copies)
@@ -81,7 +81,7 @@ void add_timestep(struct SimulationResult *result, double time, double *phases,
 void free_simulation_result(struct SimulationResult *result) {
     if (result) {
         free(result->times);
-        free(result->phases_data);
+        free(result->voltages_data);
         
         // Free individual bitmaps
         for (int i = 0; i < result->num_timesteps; i++) {
@@ -97,33 +97,33 @@ void free_simulation_result(struct SimulationResult *result) {
     }
 }
 
-// Initialize network with parameters and optional initial phases
+// Initialize network with parameters and optional initial voltages
 void init_network(struct Network *network, int N, double Tmax, double delay, 
                   double strength, double I, double Ijitter, unsigned int seed, 
-                  double *initial_phases) {
+                  double *initial_voltages) {
     srand(seed);
     
-    network->now = 0;
-    network->N = N;
-    network->Tmax = Tmax;
-    network->delay = delay;
+    network->now      = 0;
+    network->N        = N;
+    network->Tmax     = Tmax;
+    network->delay    = delay;
     network->strength = strength;
-    network->Ijitter = Ijitter;
+    network->Ijitter  = Ijitter;
     network->currents = (double *) malloc(sizeof(double) * N);
-    network->periods = (double *) malloc(sizeof(double) * N);
-    network->phases = (double *) malloc(sizeof(double) * N);
-    network->resets = (double *) malloc(sizeof(double) * N);
+    network->voltages = (double *) malloc(sizeof(double) * N);
+    network->periods  = (double *) malloc(sizeof(double) * N);
+    network->resets   = (double *) malloc(sizeof(double) * N);
 
     for (int i = 0; i < N; i++) {
         network->currents[i] = I + i * Ijitter;
-        network->periods[i] = log(network->currents[i]/(network->currents[i] - 1));
-        network->resets[i] = -1;
+        network->periods[i]  = log(network->currents[i]/(network->currents[i] - 1));
+        network->resets[i]   = -1;
         
-        // Use provided initial phases or generate random ones
-        if (initial_phases != NULL) {
-            network->phases[i] = initial_phases[i];
+        // Use provided initial voltages or generate random ones
+        if (initial_voltages != NULL) {
+            network->voltages[i] = initial_voltages[i];
         } else {
-            network->phases[i] = (double) rand() / RAND_MAX;
+            network->voltages[i] = (double) rand() / RAND_MAX;
         }
     }
 }
@@ -132,19 +132,19 @@ void init_network(struct Network *network, int N, double Tmax, double delay,
 void free_network(struct Network *network) {
     if (network) {
         free(network->currents);
+        free(network->voltages);
         free(network->periods);
-        free(network->phases);
         free(network->resets);
     }
 }
 
 // Callback function for capturing timestep data
-void capture_timestep_callback(double time, double *phases, 
+void capture_timestep_callback(double time, double *voltages, 
                               const Bitmap *spike_map, const Bitmap *reset_map, 
                               const Bitmap *total_reset_map,
                               void *context) {
     struct SimulationResult *result = (struct SimulationResult *)context;
-    add_timestep(result, time, phases, spike_map, reset_map, total_reset_map);
+    add_timestep(result, time, voltages, spike_map, reset_map, total_reset_map);
 }
 
 // Run simulation and capture results

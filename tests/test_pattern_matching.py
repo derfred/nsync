@@ -195,7 +195,7 @@ class TestSimulationResult:
     def setup_method(self):
         """Set up test data."""
         self.times = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
-        self.phases = np.random.rand(5, 3)  # 5 timesteps, 3 neurons
+        self.voltages = np.random.rand(5, 3)  # 5 timesteps, 3 neurons
         self.events = [
             {'time': 1.0, 'type': 'spike', 'neurons': [0, 1]},
             {'time': 1.0, 'type': 'spike_induced_reset', 'neurons': [2]},
@@ -211,9 +211,9 @@ class TestSimulationResult:
             'I': 1.0,
             'Ijitter': 0.0,
             'seed': 42,
-            'initial_phases': None
+            'initial_voltages': None
         }
-        self.result = SimulationResult(self.times, self.phases, self.events, self.parameters)
+        self.result = SimulationResult(self.times, self.voltages, self.events, self.parameters)
     
     def test_query_events_returns_builder(self):
         """Test that query_events returns a PatternQueryBuilder."""
@@ -282,10 +282,10 @@ class TestIntegration:
         ]
         
         times = np.array([95.0, 95.4, 96.7, 97.0, 97.9])
-        phases = np.random.rand(5, 5)  # 5 timesteps, 5 neurons
+        voltages = np.random.rand(5, 5)  # 5 timesteps, 5 neurons
         parameters = {'N': 5, 'Tmax': 100.0}
         
-        result = SimulationResult(times, phases, events, parameters)
+        result = SimulationResult(times, voltages, events, parameters)
         
         # Test exact pattern matching
         pattern = (result.query_events()
@@ -319,10 +319,10 @@ class TestIntegration:
         ]
         
         times = np.array([94.5, 95.3, 96.1, 96.9])
-        phases = np.random.rand(4, 5)
+        voltages = np.random.rand(4, 5)
         parameters = {'N': 5, 'Tmax': 100.0}
         
-        result = SimulationResult(times, phases, events, parameters)
+        result = SimulationResult(times, voltages, events, parameters)
         
         # Test group-based pattern (permutation invariant)
         pattern = (result.query_events()
